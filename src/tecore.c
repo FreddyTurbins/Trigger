@@ -17,8 +17,10 @@ typedef struct TriggerWindow {
 
 TriggerWindow triggerWindow = {0};
 
+#include "tegl.h"
+
 #if defined(PLATFORM_DESKTOP)
-#include "platform/tcoregl.c"
+#include "platform/tecoregl.c"
 #endif
 
 void InitWindow(const char* title, unsigned short width, unsigned short height)
@@ -43,6 +45,11 @@ bool WindowShouldClose(void)
 void WindowShutdown(void)
 {
   triggerWindow.shouldClose = true;
+}
+
+void SetBackground(Color color)
+{
+  TESetBackground(color.r, color.g, color.b, color.a);
 }
 
 void BeginDrawing(void)
