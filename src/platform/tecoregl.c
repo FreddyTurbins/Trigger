@@ -1,4 +1,5 @@
 #include "../external/glfw/include/GLFW/glfw3.h"
+#include "../external/glad/glad.h"
 
 #if defined(_WIN32)
 
@@ -19,12 +20,20 @@ int InitOpenGL(void)
   int result = glfwInit();
   if (result == GLFW_FALSE) { /*TRACELOG(LOG_WARNING, "GLFW: Failed to initialize GLFW");*/ return -1;}
   platform.m_window = glfwCreateWindow(triggerWindow.render.width, triggerWindow.render.height, triggerWindow.title, NULL, NULL);
+  //PROBABLY CHECK IF ITS INITIALIZED
   if(!platform.m_window) 
   {
     glfwTerminate();
     return -1;
   }
+  //MAKE A ABSTRACTION TO OPENGLCONTEXT
   glfwMakeContextCurrent(platform.m_window);
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+  {
+    /*TRACELOG LOG WARNING*/
+    printf("Failed to initialize GLAD");
+    return -1;
+  }
   return 0;
 }
 
@@ -33,13 +42,18 @@ bool OpenGLShouldClose(void)
   return glfwWindowShouldClose(platform.m_window);
 }
 
+void OpenGLCloseWindow(void)
+{
+  glfwTerminate();
+}
+
 void OpenGLSwapScreenBuffer(void)
 {
   glfwSwapBuffers(platform.m_window);
   glfwPollEvents();
 }
 
-void OpenGLCloseWindow(void)
+void OpenGLInputPolling(void)
 {
-  glfwTerminate();
+
 }

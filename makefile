@@ -1,23 +1,25 @@
 CC=gcc
 CCWIN32=x86_64-w64-mingw32-gcc
 cflags=-Wall -Wextra -pedantic -ggdb -I "include/"
-src = src/tecore.c
+src = src/tecore.c src/utils.c
 
-linux: build
-	@$(CC)	-fPIC -c src/teglfw.c -lm -ldl -lpthread
+linux:
+	@$(CC)	-fPIC -c src/teglfw.c src/external/glad/glad.c -lm -ldl -lpthread -D_GNU_SOURCE
 	@$(CC) $(cflags) -fPIC -c $(src) -lm -ldl -lpthread -DPLATFORM_DESKTOP
-	@$(CC) *.o -o build/libtrigger.a -shared
+	@$(CC) *.o -o build/libtrigger.a -shared -lm
 	@rm *.o
 
-win32: build
-	@$(CCWIN32)	-fPIC -c src/teglfw.c -lm -lwinmm -lgdi32
+win32:
+	@$(CCWIN32)	-fPIC -c src/teglfw.c src/external/glad/glad.c -lm
 	@$(CCWIN32) $(cflags) -fPIC -c $(src) -lm -DPLATFORM_DESKTOP
-	@$(CCWIN32) *.o -o build/libtrigger.dll -lwinmm -lgdi32 -shared
-	@rm *.o
+	@#@$(CCWIN32) *.o -o build/libtrigger.dll -lwinmm -lgdi32 -shared
 
-build:
-	ifneq ($(wildcard build),)
-		@echo "Found build/"
-	else
-		@echo "Creating build/" && mkdir build
-	endif
+linuxexamples: linux
+	@echo COMPILING HELLO TRIANGLE
+	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/hellotriangle examples/hellotriangle/main.c -Wl,-rpath,./
+
+win32ex: win32
+	@echo COMPILING HELLO TRIANGLE
+	@#@$(CCWIN32) $(cflags) examples/hellotriangle/main.c -o ./build/hellotriangle.exe -L./build/ -l:libtrigger.dll -static
+	@$(CCWIN32) $(cflags) examples/hellotriangle/main.c *.o -o ./build/hellotriangle.exe -static -lwinmm -lgdi32
+	@rm *.o

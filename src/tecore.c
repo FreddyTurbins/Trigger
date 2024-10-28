@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+unsigned int vao, vbo, ibo; 
+
+typedef enum {
+  NONE_API = 0,
+  TEGL
+} RendererApi;
+static RendererApi currentRendererApi = NONE_API;
 
 typedef struct { unsigned short width; unsigned short height; } Resolution;
 
@@ -17,28 +24,34 @@ typedef struct TriggerWindow {
 
 TriggerWindow triggerWindow = {0};
 
-#include "tegl.h"
 
 #if defined(PLATFORM_DESKTOP)
+#include "tegl.h"               //THIS IS THE RIGHT ORDER
 #include "platform/tecoregl.c"
 #endif
 
-void InitWindow(const char* title, unsigned short width, unsigned short height)
+void InitWindow(const char* title, const unsigned short width, const unsigned short height)
 {
   if ((title != NULL) && (title[0] != 0)) triggerWindow.title = title;
   triggerWindow.render.width = width;
   triggerWindow.render.height = height;
   #if defined(PLATFORM_DESKTOP)
   InitOpenGL();
+  tglInit();
   #endif
 }
 
 bool WindowShouldClose(void)
 {
   #if defined(PLATFORM_DESKTOP)
-    return OpenGLShouldClose() || triggerWindow.shouldClose;
+  switch (currentRendererApi) {
+    case NONE_API:
+      TriggerLogCall(LOG_WARN, "WindowShouldClose function is not detecting an API");
+      return true;
+    case TEGL: return OpenGLShouldClose() || triggerWindow.shouldClose;
+  }
   #endif
-  //TRACELOG WTF
+  TriggerLogCall(LOG_ERROR, "WindowShouldClose detecting an irregular rendererApi");
   return true;
 }
 
@@ -47,20 +60,9 @@ void WindowShutdown(void)
   triggerWindow.shouldClose = true;
 }
 
-void SetBackground(Color color)
+void SetBackground(const Color color)
 {
-  TESetBackground(color.r, color.g, color.b, color.a);
-}
-
-void BeginDrawing(void)
-{
-}
-
-void EndDrawing(void)
-{
-  #if defined(PLATFORM_DESKTOP)
-  OpenGLSwapScreenBuffer();
-  #endif
+  tglSetBackground(color.r, color.g, color.b, color.a);
 }
 
 void CloseWindow(void)
@@ -68,4 +70,16 @@ void CloseWindow(void)
   #if defined(PLATFORM_DESKTOP)
   OpenGLCloseWindow();
   #endif
+}
+
+void GFXUpdate(void) {
+#if defined(PLATFORM_DESKTOP)
+  OpenGLSwapScreenBuffer();
+  tglClearScreenBuffer();
+#endif
+}
+
+
+void InputPolling(void) {
+
 }
