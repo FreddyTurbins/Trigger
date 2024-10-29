@@ -12,14 +12,14 @@ linux:
 win32:
 	@$(CCWIN32)	-fPIC -c src/teglfw.c src/external/glad/glad.c -lm
 	@$(CCWIN32) $(cflags) -fPIC -c $(src) -lm -DPLATFORM_DESKTOP
-	@#@$(CCWIN32) *.o -o build/libtrigger.dll -lwinmm -lgdi32 -shared
+	@$(CCWIN32) *.o -o build/libtrigger.dll -lwinmm -lgdi32 -shared
+	@rm *.o
 
 linuxexamples: linux
 	@echo COMPILING HELLO TRIANGLE
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/hellotriangle examples/hellotriangle/main.c -Wl,-rpath,./
+	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/rectangle examples/rectangle/main.c -Wl,-rpath,./
 
 win32ex: win32
 	@echo COMPILING HELLO TRIANGLE
-	@#@$(CCWIN32) $(cflags) examples/hellotriangle/main.c -o ./build/hellotriangle.exe -L./build/ -l:libtrigger.dll -static
-	@$(CCWIN32) $(cflags) examples/hellotriangle/main.c *.o -o ./build/hellotriangle.exe -static -lwinmm -lgdi32
-	@rm *.o
+	@$(CCWIN32) $(cflags) examples/hellotriangle/main.c -o ./build/hellotriangle.exe -L./build/ -l:libtrigger.dll -static

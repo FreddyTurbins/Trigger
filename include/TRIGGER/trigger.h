@@ -1,6 +1,20 @@
 //==========================================================================
 //  TRIGGER 0.01
 //==========================================================================
+#ifndef TRIGGER_H
+#define TRIGGER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef _WIN32
+  #define TRAPI __declspec(dllexport)
+#endif
+
+#ifndef TRAPI
+  #define TRAPI
+#endif
 
 #ifndef bool
   typedef enum { false, true } bool;
@@ -24,30 +38,37 @@ typedef struct Color {
   unsigned char a;
 } Color;
 
+typedef struct Vector2 {
+  float x;
+  float y;
+} Vector2;
+
 #define DARK_GRAY     (Color){30, 30, 30, 255}
 #define PINK          (Color){200, 40, 180, 255}
 
-//Window options related fuctions
+//Window options related functions
 //============================================================
-void InitWindow(const char* title, const unsigned short width, const unsigned short height);
-bool WindowShouldClose(void);
-void WindowShutdown(void);
-void CloseWindow(void);
+TRAPI void InitWindow(const char* title, const unsigned short width, const unsigned short height);
+TRAPI bool WindowShouldClose(void);
+TRAPI void WindowShutdown(void);
+TRAPI void CloseWindow(void);
 
 //Drawing functions
 //============================================================
-void SetBackground(const Color color);
+TRAPI void DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color);
+TRAPI void SetBackground(const Color color);
 
 //Frame update fuctions
 //============================================================
-void GFXUpdate(void);
-void InputPolling(void);
+TRAPI void GFXUpdate(void);
+TRAPI void InputPolling(void);
 
 //File functions
 //============================================================
-char* ReadTextFile(const char* filepath);
+TRAPI char* ReadTextFile(const char* filepath);
 
 //Util functions
 //============================================================
-void TriggerLogCall(const int logLevel, const char* fmt, ...);
-void SetTriggerLogLevel(const int logLevel);
+TRAPI void TriggerLogCall(const int logLevel, const char* fmt, ...);
+TRAPI void SetTriggerLogLevel(const int logLevel);
+#endif
