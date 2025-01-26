@@ -38,10 +38,52 @@ typedef struct Color {
   unsigned char a;
 } Color;
 
+typedef struct Image {
+  unsigned char* data;
+  int width;
+  int height;
+  int nrChannel;
+} Image;
+
+typedef struct Texture {
+  unsigned int id;
+  int width;
+  int height;
+  int nrChannel;
+} Texture;
+
 typedef struct Vector2 {
   float x;
   float y;
 } Vector2;
+
+typedef struct Vector3 {
+  float x;
+  float y;
+  float z;
+} Vector3;
+
+typedef struct Vector4 {
+  float x;
+  float y;
+  float z;
+  float w;
+} Vector4;
+
+typedef struct Rectangle {
+  float x;
+  float y;
+  float width;
+  float height;
+} Rectangle;
+
+typedef struct Time {
+
+} Time;
+
+#define T_VECTOR2
+#define T_VECTOR3
+#define T_VECTOR4
 
 #define DARK_GRAY     (Color){30, 30, 30, 255}
 #define PINK          (Color){200, 40, 180, 255}
@@ -53,21 +95,33 @@ TRAPI bool WindowShouldClose(void);
 TRAPI void WindowShutdown(void);
 TRAPI void CloseWindow(void);
 
-//Drawing functions
+//Drawing related functions
 //============================================================
-TRAPI void DrawTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color);
+TRAPI void DrawTriangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color);
+TRAPI void DrawRectangle(const Vector2 pos, const int width, const int height, const Color color);
+TRAPI void DrawRectangleExtended(const Rectangle data, const Vector2 origin, const float rotate, const Color color);
 TRAPI void SetBackground(const Color color);
 
-//Frame update fuctions
+//Texture related functions
+//============================================================
+TRAPI Image ReadImageFile(const char* filepath);
+TRAPI Texture CreateTexture(const char* filepath);
+
+//Frame update related fuctions
 //============================================================
 TRAPI void GFXUpdate(void);
 TRAPI void InputPolling(void);
 
-//File functions
+//Time related fuctions
 //============================================================
-TRAPI char* ReadTextFile(const char* filepath);
+TRAPI double GetTime(void);
 
-//Util functions
+//File related functions
+//============================================================
+TRAPI char* ReadTextFile(const char* filepath, unsigned int* readLen);
+TRAPI void FreeTextData(unsigned char* data);
+
+//Util related functions
 //============================================================
 TRAPI void TriggerLogCall(const int logLevel, const char* fmt, ...);
 TRAPI void SetTriggerLogLevel(const int logLevel);

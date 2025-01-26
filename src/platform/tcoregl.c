@@ -1,5 +1,5 @@
-#include "../external/glfw/include/GLFW/glfw3.h"
-#include "../external/glad/glad.h"
+#include "../vendor/glfw/include/GLFW/glfw3.h"
+#include "../vendor/glad/glad.h"
 
 #if defined(_WIN32)
 
@@ -18,11 +18,14 @@ PlatformData platform = {0};
 int InitOpenGL(void)
 {
   int result = glfwInit();
-  if (result == GLFW_FALSE) { /*TRACELOG(LOG_WARNING, "GLFW: Failed to initialize GLFW");*/ return -1;}
+  if (result == GLFW_FALSE) { 
+    TriggerLogCall(LOG_FATAL, "Failed to initialize GLFW");
+    return -1;
+  }
   platform.m_window = glfwCreateWindow(triggerWindow.render.width, triggerWindow.render.height, triggerWindow.title, NULL, NULL);
-  //PROBABLY CHECK IF ITS INITIALIZED
   if(!platform.m_window) 
   {
+    TriggerLogCall(LOG_FATAL, "Fail creating window");
     glfwTerminate();
     return -1;
   }
@@ -30,8 +33,7 @@ int InitOpenGL(void)
   glfwMakeContextCurrent(platform.m_window);
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
   {
-    /*TRACELOG LOG WARNING*/
-    printf("Failed to initialize GLAD");
+    TriggerLogCall(LOG_FATAL, "Failed initializing GLAD");
     return -1;
   }
   return 0;
@@ -56,4 +58,9 @@ void OpenGLSwapScreenBuffer(void)
 void OpenGLInputPolling(void)
 {
 
+}
+
+double GetTime(void)
+{
+  return glfwGetTime();
 }

@@ -4,12 +4,16 @@
 #include <string.h>
 
 #include "TRIGGER/trigger.h"
-#include "utils.h"
 
 static int loggingLevel = LOG_INFO;
 
+void FreeTextData(unsigned char* data)
+{
+  free(data);
+}
+
 //Read data from a text file into a buffer
-char* ReadTextFile(const char* filepath)
+char* ReadTextFile(const char* filepath, unsigned int* readLen)
 {
   char* text = NULL;
   if (filepath == NULL || filepath[0] == '\0') {
@@ -36,12 +40,12 @@ char* ReadTextFile(const char* filepath)
     return text;
   }
 
-  unsigned int readLen = (unsigned int)fread(text, sizeof(char), count, file);
-  text[readLen] = '\0';
+  *readLen = (unsigned int)fread(text, sizeof(char), count, file);
+  text[*readLen] = '\0';
   fclose(file);
   TriggerLogCall(LOG_INFO, "FILEIO -> [%s] File loaded", filepath);
-  if (count != readLen) {
-    TriggerLogCall(LOG_DEBUG, "FILEIO -> [%s] Fread count: %d out of Ftell count: %d", filepath, readLen, count);
+  if (count != *readLen) {
+    TriggerLogCall(LOG_DEBUG, "FILEIO -> [%s] Fread count: %d out of Ftell count: %d", filepath, *readLen, count);
   }
   return text;
 }

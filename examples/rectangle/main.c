@@ -8,8 +8,7 @@ signed main()
   while(!WindowShouldClose()) {
     SetBackground(DARK_GRAY);
     //Do draw Rectangle
-    DrawTriangle((Vector2){-0.5f, -0.5f}, (Vector2){0.5f, -0.5f}, (Vector2){0.5f, 0.5f}, (Color){0, 100, 120, 255});
-    DrawTriangle((Vector2){0.5f, 0.5f}, (Vector2){-0.5f, 0.5f}, (Vector2){-0.5f, -0.5f}, (Color){0, 200, 120, 255});
+    DrawRectangle((Vector2){-0.5f, -0.5f}, 1, 1, (Color){180, 30, 200, 255});
     InputPolling();
     GFXUpdate();
   }

@@ -5,9 +5,6 @@
 signed main()
 {
   InitWindow("Hello Triangle", 720, 460);
-  char* text = ReadTextFile("CountMeOut.txt");
-  printf("%s", text);
-  free(text);
   while(!WindowShouldClose()) {
     SetBackground(DARK_GRAY);
     DrawTriangle((Vector2){-0.5f, -0.5f}, (Vector2){0.5f, -0.5f}, (Vector2){0.f, 0.5f}, (Color){0, 180, 90, 255});
