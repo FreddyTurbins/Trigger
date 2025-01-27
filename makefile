@@ -19,7 +19,9 @@ linuxexamples: linux
 	@echo COMPILING HELLO TRIANGLE
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/hellotriangle examples/hellotriangle/main.c -Wl,-rpath,./
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/rectangle examples/rectangle/main.c -Wl,-rpath,./
+	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/texture examples/texture/main.c -Wl,-rpath,./
 
 win32ex: win32
 	@echo COMPILING HELLO TRIANGLE
 	@$(CCWIN32) $(cflags) examples/hellotriangle/main.c -o ./build/hellotriangle.exe -L./build/ -l:libtrigger.dll -static
+	@$(CCWIN32) $(cflags) examples/rectangle/main.c -o ./build/rectangle.exe -L./build/ -l:libtrigger.dll -static

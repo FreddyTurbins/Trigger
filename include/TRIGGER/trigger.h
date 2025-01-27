@@ -77,6 +77,13 @@ typedef struct Rectangle {
   float height;
 } Rectangle;
 
+typedef struct Mat4 {
+  float m0, m1, m2, m3;
+  float m4, m5, m6, m7;
+  float m8, m9, m10, m11;
+  float m12, m13, m14, m15;
+} Mat4;
+
 typedef struct Time {
 
 } Time;
@@ -84,6 +91,7 @@ typedef struct Time {
 #define T_VECTOR2
 #define T_VECTOR3
 #define T_VECTOR4
+#define T_MAT4
 
 #define DARK_GRAY     (Color){30, 30, 30, 255}
 #define PINK          (Color){200, 40, 180, 255}
@@ -100,6 +108,8 @@ TRAPI void CloseWindow(void);
 TRAPI void DrawTriangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color);
 TRAPI void DrawRectangle(const Vector2 pos, const int width, const int height, const Color color);
 TRAPI void DrawRectangleExtended(const Rectangle data, const Vector2 origin, const float rotate, const Color color);
+TRAPI void DrawTexture(const Texture texture, const Vector2 pos, const Color color);
+TRAPI void DrawTextureExtended(const Texture texture, const Rectangle data, const Vector2 origin, const float rotate, const Color color);
 TRAPI void SetBackground(const Color color);
 
 //Texture related functions

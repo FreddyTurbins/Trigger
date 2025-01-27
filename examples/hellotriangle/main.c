@@ -7,7 +7,7 @@ signed main()
   InitWindow("Hello Triangle", 720, 460);
   while(!WindowShouldClose()) {
     SetBackground(DARK_GRAY);
-    DrawTriangle((Vector2){-0.5f, -0.5f}, (Vector2){0.5f, -0.5f}, (Vector2){0.f, 0.5f}, (Color){0, 180, 90, 255});
+    DrawTriangle((Vector2){180.0f, 115.0f}, (Vector2){540.0f, 115.0f}, (Vector2){360.0f, 345.0f}, (Color){0, 180, 90, 255});
     InputPolling();
     GFXUpdate();
   }

@@ -76,6 +76,7 @@ TRAPI unsigned int tglCreateIndexBuffer(const unsigned int* data, const unsigned
 
 //Vertex operations related functions
 //============================================================
+TRAPI void tglSetUniformMat4f(char* uniformName, Mat4 mat);
 TRAPI void tglSetUniform4(const unsigned char r, const unsigned char g, const unsigned char b, const unsigned char a);
 TRAPI void tglSetVertex3f(const float x, const float y, const float z);
 
@@ -99,11 +100,11 @@ TRAPI RenderBatch tglCreateBatchRender(int bufferElements);
 TRAPI void tglDrawBatchRender(RenderBatch* batch);
 TRAPI void tglDrawCurrentBatchRender(void);
 
+#if defined(TEGL_IMPLEMENTATION)
+
 //Static modules related functions
 //============================================================
-TRAPI static void tglLoadDefaultShader(void);
-
-#if defined(TEGL_IMPLEMENTATION)
+static void tglLoadDefaultShader(void);
 //TGL initialize related functions
 //============================================================
 void tglInit()
@@ -150,13 +151,23 @@ unsigned int tglCreateIndexBuffer(const unsigned int* data, const unsigned int c
 
 //Vertex operations
 //============================================================
+void tglSetUniformMat4f(char* uniformName, Mat4 mat)
+{
+  int loc = glGetUniformLocation(TEGLData.defaultShaderId, uniformName);
+  if (loc < 0) {
+    TriggerLogCall(LOG_WARN, "SHADER-> [%s] uniform is not valid", uniformName);
+  }
+  float fMat[16] = {
+    mat.m0, mat.m1, mat.m2, mat.m3,
+    mat.m4, mat.m5, mat.m6, mat.m7,
+    mat.m8, mat.m9, mat.m10, mat.m11,
+    mat.m12, mat.m13, mat.m14, mat.m15
+  };
+  glUniformMatrix4fv(loc, 1, GL_FALSE, fMat);
+}
+
 void tglSetUniform4(const unsigned char r, const unsigned char g, const unsigned char b, const unsigned char a)
 {
-  printf("SET SOS\n");
-  printf("red: %d\n", r);
-  printf("green: %d\n", g);
-  printf("blue: %d\n", b);
-  printf("--------------------\n");
   TEGLData.currentColor.x = (float)r/255;
   TEGLData.currentColor.y = (float)g/255;
   TEGLData.currentColor.z = (float)b/255;
@@ -170,16 +181,30 @@ void tglSetTexCoord2f(float x, float y)
 
 void tglSetTexIndex(float index)
 {
-  defaultBatch.quadBufferptr->texIndex = index;
+  if (index == 0) {
+    defaultBatch.quadBufferptr->texIndex = index;
+    return;
+  }
+  float textIndex = 0.0f;
+  for (uint32_t i = 1; i < defaultBatch.textureSlotsIndex; i++)
+  {
+    if (defaultBatch.textureSlots[i] == index) {
+      textIndex = (float)i;
+      break;
+    }
+  }
+  if (textIndex == 0.0f) {
+    textIndex = (float)defaultBatch.textureSlotsIndex;
+    defaultBatch.textureSlots[defaultBatch.textureSlotsIndex] = index;
+    defaultBatch.textureSlotsIndex++;
+  }
+  defaultBatch.quadBufferptr->texIndex = textIndex;
 }
 
 void tglSetVertex3f(float x, float y, float z)
 {
   defaultBatch.quadBufferptr->position = (Vector3){x, y, z};
   defaultBatch.quadBufferptr->color = TEGLData.currentColor;
-  printf("red: %f\n", defaultBatch.quadBufferptr->color.x);
-  printf("green: %f\n", defaultBatch.quadBufferptr->color.y);
-  printf("blue: %f\n", defaultBatch.quadBufferptr->color.z);
   defaultBatch.quadBufferptr++;
 }
 
@@ -347,18 +372,15 @@ unsigned int tglCreateShaderProgram(const unsigned int vShaderId, const unsigned
 void tglDrawBatchRender(RenderBatch* batch)
 {
   size_t size = (uint8_t*)batch->quadBufferptr - (uint8_t*)batch->quadBuffer;
-  printf("%ld\n", size);
   glBindBuffer(GL_ARRAY_BUFFER, batch->vertexBuffer);
   glBufferSubData(GL_ARRAY_BUFFER, 0, size, batch->quadBuffer);
 
   for (uint32_t i = 0; i < batch->textureSlotsIndex; i++) {
-    printf("textureSlots: %d\n", i);
     glBindTextureUnit(i, batch->textureSlots[i]);
   }
 
   glBindVertexArray(batch->vertexArray);
   glDrawElements(GL_TRIANGLES, batch->indexCount, GL_UNSIGNED_INT, NULL);
-  printf("Index: %d\nVertex: %d\n", batch->indexCount, TEGLData.quadCount);
 
   batch->quadBufferptr = batch->quadBuffer;
   batch->textureSlotsIndex = 1;
@@ -383,6 +405,8 @@ static void tglLoadDefaultShader(void)
     "layout (location = 2) in vec2 textureCoord;              \n"
     "layout (location = 3) in float textureIndex;             \n"
     "                                                         \n"
+    "uniform mat4 projMatrix;                                 \n"
+    "                                                         \n"
     "out vec4 f_Color;                                        \n"
     "out vec2 f_TexCoord;                                     \n"
     "out float f_TexIndex;                                    \n"
@@ -391,7 +415,7 @@ static void tglLoadDefaultShader(void)
     " f_Color = vertexColor;                                  \n"
     " f_TexCoord = textureCoord;                              \n"
     " f_TexIndex = textureIndex;                              \n"
-    " gl_Position = vec4(vertexPosition, 1.0);                \n"
+    " gl_Position = projMatrix*vec4(vertexPosition, 1.0);     \n"
     "}                                                        \n";
 
   const char* defaultFragmentShaderCode =
@@ -421,7 +445,6 @@ static void tglLoadDefaultShader(void)
     for(int i = 0; i < 32; i++)
       samplers[i] = i;
     glUniform1iv(loc, 32, samplers);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   } else {
     TriggerLogCall(LOG_WARN, "SHADER -> [ID %d] Default shader failed loading", TEGLData.defaultShaderId);
   }

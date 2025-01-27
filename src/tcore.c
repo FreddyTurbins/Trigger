@@ -40,6 +40,8 @@ void InitWindow(const char* title, const unsigned short width, const unsigned sh
   InitOpenGL();
   tglInit();
   currentRendererApi = TEGL;
+  Mat4 projMatrix = CreateMatrixOrtho(0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f);
+  tglSetUniformMat4f("projMatrix", projMatrix);
   #endif
 }
 
@@ -118,6 +120,48 @@ void DrawRectangleExtended(const Rectangle data, const Vector2 origin, const flo
   tglAddIndexCount();
 }
 
+void DrawTexture(const Texture texture, const Vector2 pos, const Color color)
+{
+  DrawTextureExtended(texture, (Rectangle){pos.x, pos.y, texture.width, texture.height}, 
+      (Vector2){0.0f, 0.0f}, 0.0f, color);  
+}
+
+void DrawTextureExtended(const Texture texture, const Rectangle data, const Vector2 origin, const float rotate, const Color color)
+{
+  if (texture.id == 0) {
+    TriggerLogCall(LOG_WARN, "TEXTURE-> Draw texture not valid");
+    return;
+  }
+  Vector2 topLeft = {0};
+  Vector2 topRight = {0};
+  Vector2 bottomLeft = {0};
+  Vector2 bottomRight = {0};
+  if (rotate == 0.0f) {
+    float x = data.x - origin.x;
+    float y = data.y - origin.y;
+    topLeft = (Vector2){x, y};
+    topRight = (Vector2){x + data.width, y};
+    bottomLeft = (Vector2){x, y + data.height};
+    bottomRight = (Vector2){x + data.width, y + data.height};
+  } else {
+    TriggerLogCall(LOG_WARN, "ROTATE IS NOT IMPLEMENTED YET");
+  }
+  tglSetUniform4(color.r, color.g, color.b, color.a);
+  tglSetTexCoord2f(0.0f, 1.0f);
+  tglSetTexIndex(texture.id);
+  tglSetVertex3f(topLeft.x, topLeft.y, 0);
+  tglSetTexCoord2f(0.0f, 0.0f);
+  tglSetTexIndex(texture.id);
+  tglSetVertex3f(bottomLeft.x, bottomLeft.y, 0);
+  tglSetTexCoord2f(1.0f, 0.0f);
+  tglSetTexIndex(texture.id);
+  tglSetVertex3f(bottomRight.x, bottomRight.y, 0);
+  tglSetTexCoord2f(1.0f, 1.0f);
+  tglSetTexIndex(texture.id);
+  tglSetVertex3f(topRight.x, topRight.y, 0);
+  tglAddIndexCount();
+}
+
 void SetBackground(const Color color)
 {
   switch (currentRendererApi) {
@@ -165,6 +209,9 @@ Texture CreateTexture(const char* filepath)
   
   //USING OPENGL ABSTRACTION
   texture.id = tglCreateTexture(img.data, img.width, img.height, img.nrChannel);
+  texture.width = img.width;
+  texture.height = img.height;
+  texture.nrChannel = img.nrChannel;
   free(img.data); //DO ABSTRACTION
   if (texture.id == 0) {
     TriggerLogCall(LOG_WARN, "TEXTURE -> [%s] Fail creating texture", filepath);
