@@ -179,9 +179,9 @@ unsigned int tglCompileShader(const char* shaderText, int type)
     return 0;
   }
   
-  int typeGl = (type) ? GL_FRAGMENT_SHADER : GL_VERTEX_SHADER;
+  type = (type) ? GL_FRAGMENT_SHADER : GL_VERTEX_SHADER;
 
-  unsigned int id = glCreateShader(typeGl);
+  unsigned int id = glCreateShader(type);
   glShaderSource(id, 1, &shaderText, NULL);
   glCompileShader(id);
 
@@ -247,11 +247,11 @@ void tglSetShader(const unsigned int shader)
 {
   TEGLData.currentShader = shader;
 }
-
+/*
 void tglBindCurrentShader()
 {
   glUseProgram(TEGLData.currentShader);
-}
+}*/
 
 //Static modules
 //============================================================
@@ -295,6 +295,8 @@ static void tglLoadDefaultShader(void)
   TEGLData.quadVShader    = tglCompileShader(defaultVertexShaderCode, TRIGGER_VERTEX_SHADER);
   TEGLData.quadFShader    = tglCompileShader(defaultFragmentShaderCode, TRIGGER_FRAGMENT_SHADER);
   TEGLData.quadShader     = tglCreateShaderProgram(TEGLData.quadVShader, TEGLData.quadFShader);
+  glUseProgram(TEGLData.quadShader);
+  tglSetShader(TEGLData.quadShader);
 
   if (TEGLData.quadShader > 0) {
     TriggerLogCall(LOG_INFO, "SHADER -> [ID %d] Default shader loaded", TEGLData.quadShader);
@@ -308,8 +310,6 @@ static void tglLoadDefaultShader(void)
     TriggerLogCall(LOG_WARN, "SHADER -> [ID %d] Default shader failed loading", TEGLData.quadShader);
   }
   
-  TEGLData.currentShader  = TEGLData.quadShader;
-  glUseProgram(TEGLData.currentShader);
 }
 #endif
 #endif

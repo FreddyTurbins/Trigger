@@ -99,16 +99,15 @@ void tglFlushQuad2DRenderer(void)
 {
   if (batch.quadIndexCount) {
 
-    tglBindCurrentShader();
-
     size_t size = (uint8_t*)batch.quadBufferptr - (uint8_t*)batch.quadBuffer;
     glBindBuffer(GL_ARRAY_BUFFER, batch.quadVB);
     glBufferSubData(GL_ARRAY_BUFFER, 0, size, batch.quadBuffer);
 
     for (uint32_t i = 0; i < batch.textureSlotsIndex; i++) {
-      TriggerLogCall(LOG_WARN, "Texture: %d", i);
       glBindTextureUnit(i, batch.textureSlots[i]);
     }
+
+    //tglBindCurrentShader();
 
     glBindVertexArray(batch.quadVA);
     glDrawElements(GL_TRIANGLES, batch.quadIndexCount, GL_UNSIGNED_INT, NULL);
@@ -226,6 +225,7 @@ void tglDrawTexture(const float texture, const Rectangle data, const unsigned lo
       break;
     }
   }
+
   if (textureIndex == 0.0f) {
     if (batch.textureSlotsIndex >= TEGL_MAX_TEXTURES) tglFlush2DRenderer();
 
@@ -238,7 +238,6 @@ void tglDrawTexture(const float texture, const Rectangle data, const unsigned lo
     batch.quadBufferptr->position = vertexPosition[k];
     batch.quadBufferptr->color    = color4f;
     batch.quadBufferptr->texCoord = textureCoord[k];
-    TriggerLogCall(LOG_WARN, "texture Index: %f", textureIndex);
     batch.quadBufferptr->texIndex = textureIndex;
     batch.quadBufferptr++;
   }

@@ -102,8 +102,7 @@ void DrawTextureExtended(const Texture texture, const Rectangle data, const Colo
     TriggerLogCall(LOG_WARN, "TEXTURE-> Draw texture not valid");
     return;
   }
-  
-  TriggerLogCall(LOG_INFO, "MMM: %f", (float)texture.id);
+
   tglDrawTexture((float)texture.id, data, COLOR_NUMBER(color));
 }
 
@@ -152,7 +151,6 @@ Texture CreateTexture(const char* filepath)
   }
   
   //USING OPENGL ABSTRACTION
-
   texture.id = tglCreateTexture(img.data, img.width, img.height, img.nrChannel);
   texture.width = img.width;
   texture.height = img.height;
@@ -180,8 +178,6 @@ Image ReadImageFile(const char* filepath)
   }
   
   img.data = stbi_load_from_memory(imgData, dataCount, &img.width, &img.height, &img.nrChannel, 0);
-  
-  TriggerLogCall(LOG_WARN, "NRCHANNEL: %d", img.nrChannel);
 
   if (img.nrChannel == 1) img.nrChannel = GL_LUMINANCE;
   else if (img.nrChannel == 2) img.nrChannel = GL_LUMINANCE_ALPHA;

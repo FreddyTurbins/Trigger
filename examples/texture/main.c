@@ -4,12 +4,15 @@
 
 signed main()
 {
-  InitWindow("Hello Rectangle", 1920, 1080);
+  InitWindow("Hello Texture", 1920, 1080);
   Texture texture = CreateTexture("./test.png");
+  Texture texture2 = CreateTexture("./test2.png");
   while(!WindowShouldClose()) {
     SetBackground(DARK_GRAY);
-    //Do draw Rectangle
+    
     DrawTexture(texture, (Vector2){300, 300}, (Color){255, 255, 255, 255});
+    DrawTexture(texture2, (Vector2){1200, 300}, (Color){255, 0, 0, 255});
+    
     InputPolling();
     GFXUpdate();
   }
