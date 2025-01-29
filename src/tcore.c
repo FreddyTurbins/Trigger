@@ -9,7 +9,7 @@ typedef enum {
 } RendererApi;
 static RendererApi currentRendererApi = NONE_API;
 
-typedef struct { unsigned short width; unsigned short height; } Resolution;
+typedef struct {unsigned short width; unsigned short height;} Resolution;
 
 typedef struct TriggerWindow {
   const char* title;
@@ -22,15 +22,20 @@ typedef struct TriggerWindow {
 
 TriggerWindow triggerWindow = {0};
 
+#define COLOR_NUMBER(X)                    ((X).r<<(8*3))+((X).g<<(8*2))+((X).b<<(8*1))+(X).a
+
 #if defined(PLATFORM_DESKTOP)
+  #define TMATH_IMPLEMENTATION
+  #include "tmath.h"
   #define TEGL_IMPLEMENTATION
   #include "tgl.h"               //THIS IS THE RIGHT ORDER
   #include "platform/tcoregl.c"
+  #define STB_IMAGE_IMPLEMENTATION
+  #include "vendor/stb_image.h"
 #endif
 
-static Texture texShapes = {1, 1, 1, 1, 7};
-static Rectangle shapeRec = { 0.0f, 0.0f, 1.0f, 1.0f };
-
+//Window options functions
+//============================================================
 void InitWindow(const char* title, const unsigned short width, const unsigned short height)
 {
   if ((title != NULL) && (title[0] != 0)) triggerWindow.title = title;
@@ -63,103 +68,43 @@ void WindowShutdown(void)
 {
   triggerWindow.shouldClose = true;
 }
+
+Vector2 GetWindowSize(void)
+{
+  return (Vector2){(float)triggerWindow.render.width, (float)triggerWindow.render.height};
+}
+
 //Drawing functions
 //============================================================
 void DrawTriangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color)
 {
-  tglSetUniform4(color.r, color.g, color.b, color.a);
-  tglSetTexCoord2f(shapeRec.x/texShapes.width, shapeRec.y/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(v1.x, v1.y, 0);
-  tglSetTexCoord2f(shapeRec.x/texShapes.width, (shapeRec.y + shapeRec.height)/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(v2.x, v2.y, 0);
-  tglSetTexCoord2f((shapeRec.x + shapeRec.width)/texShapes.width, (shapeRec.y + shapeRec.height)/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(v2.x, v2.y, 0);
-  tglSetTexCoord2f((shapeRec.x + shapeRec.width)/texShapes.width, shapeRec.y/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(v3.x, v3.y, 0);
-  tglAddIndexCount();
+  
 }
 
-void DrawRectangle(const Vector2 pos, const int width, const int height, const Color color)
+void DrawQuad(const Vector2 pos, const Vector2 size, const Color color)
 {
-  DrawRectangleExtended((Rectangle){pos.x, pos.y, width, height}, (Vector2){0.0f, 0.0f}, 0.0f, color);
+  tglDrawQuad((Rectangle){pos.x, pos.y, size.x, size.y}, COLOR_NUMBER(color));
 }
 
-void DrawRectangleExtended(const Rectangle data, const Vector2 origin, const float rotate, const Color color)
+void DrawCircle(const Vector2 center, const float radius, const Color color)
 {
-  Vector2 topLeft = { 0 };
-  Vector2 topRight = { 0 };
-  Vector2 bottomLeft = { 0 };
-  Vector2 bottomRight = { 0 };
-  if (rotate == 0.0f) {
-    float x = data.x - origin.x;
-    float y = data.y - origin.y;
-    topLeft = (Vector2){x, y};
-    topRight = (Vector2){x + data.width, y};
-    bottomLeft = (Vector2){x, y + data.height};
-    bottomRight = (Vector2){x + data.width, y + data.height};
-  } else {
-    TriggerLogCall(LOG_WARN, "ROTATE IS NOT IMPLEMENTED YET");
-  }
-  tglSetUniform4(color.r, color.g, color.b, color.a);
-  tglSetTexCoord2f(shapeRec.x/texShapes.width, shapeRec.y/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(topLeft.x, topLeft.y, 0);
-  tglSetTexCoord2f(shapeRec.x/texShapes.width, (shapeRec.y + shapeRec.height)/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(bottomLeft.x, bottomLeft.y, 0);
-  tglSetTexCoord2f((shapeRec.x + shapeRec.width)/texShapes.width, (shapeRec.y + shapeRec.height)/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(bottomRight.x, bottomRight.y, 0);
-  tglSetTexCoord2f((shapeRec.x + shapeRec.width)/texShapes.width, shapeRec.y/texShapes.height);
-  tglSetTexIndex(0);
-  tglSetVertex3f(topRight.x, topRight.y, 0);
-  tglAddIndexCount();
+  tglDrawCircle(center, radius, 1.0f,  COLOR_NUMBER(color));
 }
 
 void DrawTexture(const Texture texture, const Vector2 pos, const Color color)
 {
-  DrawTextureExtended(texture, (Rectangle){pos.x, pos.y, texture.width, texture.height}, 
-      (Vector2){0.0f, 0.0f}, 0.0f, color);  
+  DrawTextureExtended(texture, (Rectangle){pos.x, pos.y, texture.width, texture.height}, color);  
 }
 
-void DrawTextureExtended(const Texture texture, const Rectangle data, const Vector2 origin, const float rotate, const Color color)
+void DrawTextureExtended(const Texture texture, const Rectangle data, const Color color)
 {
   if (texture.id == 0) {
     TriggerLogCall(LOG_WARN, "TEXTURE-> Draw texture not valid");
     return;
   }
-  Vector2 topLeft = {0};
-  Vector2 topRight = {0};
-  Vector2 bottomLeft = {0};
-  Vector2 bottomRight = {0};
-  if (rotate == 0.0f) {
-    float x = data.x - origin.x;
-    float y = data.y - origin.y;
-    topLeft = (Vector2){x, y};
-    topRight = (Vector2){x + data.width, y};
-    bottomLeft = (Vector2){x, y + data.height};
-    bottomRight = (Vector2){x + data.width, y + data.height};
-  } else {
-    TriggerLogCall(LOG_WARN, "ROTATE IS NOT IMPLEMENTED YET");
-  }
-  tglSetUniform4(color.r, color.g, color.b, color.a);
-  tglSetTexCoord2f(0.0f, 1.0f);
-  tglSetTexIndex(texture.id);
-  tglSetVertex3f(topLeft.x, topLeft.y, 0);
-  tglSetTexCoord2f(0.0f, 0.0f);
-  tglSetTexIndex(texture.id);
-  tglSetVertex3f(bottomLeft.x, bottomLeft.y, 0);
-  tglSetTexCoord2f(1.0f, 0.0f);
-  tglSetTexIndex(texture.id);
-  tglSetVertex3f(bottomRight.x, bottomRight.y, 0);
-  tglSetTexCoord2f(1.0f, 1.0f);
-  tglSetTexIndex(texture.id);
-  tglSetVertex3f(topRight.x, topRight.y, 0);
-  tglAddIndexCount();
+  
+  TriggerLogCall(LOG_INFO, "MMM: %f", (float)texture.id);
+  tglDrawTexture((float)texture.id, data, COLOR_NUMBER(color));
 }
 
 void SetBackground(const Color color)
@@ -181,7 +126,7 @@ void GFXUpdate(void) {
 #if defined(PLATFORM_DESKTOP)
   OpenGLSwapScreenBuffer();
   tglClearScreenBuffer();
-  tglDrawCurrentBatchRender();
+  tglFlush2DRenderer();
 #endif
 }
 
@@ -189,9 +134,8 @@ void InputPolling(void) {
 
 }
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "vendor/stb_image.h"
-
+//Texture functions
+//============================================================
 Texture CreateTexture(const char* filepath)
 {
   Texture texture = {0};
@@ -208,6 +152,7 @@ Texture CreateTexture(const char* filepath)
   }
   
   //USING OPENGL ABSTRACTION
+
   texture.id = tglCreateTexture(img.data, img.width, img.height, img.nrChannel);
   texture.width = img.width;
   texture.height = img.height;
@@ -215,6 +160,8 @@ Texture CreateTexture(const char* filepath)
   free(img.data); //DO ABSTRACTION
   if (texture.id == 0) {
     TriggerLogCall(LOG_WARN, "TEXTURE -> [%s] Fail creating texture", filepath);
+  } else if (texture.id > 0) {
+    TriggerLogCall(LOG_INFO, "TEXTURE -> [ID: %d -> %d/%d] Texture created succesfuly", texture.id, img.width, img.height);
   }
 
   return texture;
@@ -233,6 +180,13 @@ Image ReadImageFile(const char* filepath)
   }
   
   img.data = stbi_load_from_memory(imgData, dataCount, &img.width, &img.height, &img.nrChannel, 0);
+  
+  TriggerLogCall(LOG_WARN, "NRCHANNEL: %d", img.nrChannel);
+
+  if (img.nrChannel == 1) img.nrChannel = GL_LUMINANCE;
+  else if (img.nrChannel == 2) img.nrChannel = GL_LUMINANCE_ALPHA;
+  else if (img.nrChannel == 3) img.nrChannel = GL_RGB;
+  else if (img.nrChannel == 4) img.nrChannel = GL_RGBA;
   FreeTextData(imgData);
 
   if (img.data == NULL) {
@@ -242,4 +196,32 @@ Image ReadImageFile(const char* filepath)
   }
 
   return img;
+}
+
+//Shader functions
+//============================================================
+unsigned int LoadShader(const char* vShaderCode, const char* fShaderCode)
+{
+  int program = 0;
+  int vShader = 0, fShader = 0;
+  vShader = (vShaderCode == NULL || vShaderCode[0] == '\0') ?
+      tglGetDefaultVertexShader() : tglCompileShader(vShaderCode, TRIGGER_VERTEX_SHADER);
+
+  fShader = (fShaderCode == NULL || fShaderCode[0] == '\0') ?
+    tglGetDefaultFragmentShader() : tglCompileShader(fShaderCode, TRIGGER_FRAGMENT_SHADER);
+  
+  program = tglCreateShaderProgram(vShader, fShader);
+  return program;
+}
+
+void BeginShader(const unsigned int shader)
+{
+  tglFlushQuad2DRenderer();
+  tglSetShader(shader);
+}
+
+void EndShader()
+{
+  tglFlushQuad2DRenderer();
+  tglSetShader(tglGetDefaultShader());
 }

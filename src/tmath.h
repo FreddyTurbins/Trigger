@@ -46,6 +46,19 @@ typedef struct Mat4 {
 } Mat4;
 #endif
 
+#ifndef T_RECTANGLE
+#define T_RECTANGLE
+typedef struct Rectangle {
+  float x;
+  float y;
+  float width;
+  float height;
+} Rectangle;
+#endif
+
+TMAPI Mat4 CreateMatrixOrtho(double left, double right, double bottom, double top, double zNear, double zFar);
+
+#if defined(TMATH_IMPLEMENTATION)
 
 TMAPI Mat4 CreateMatrixOrtho(double left, double right, double bottom, double top, double zNear, double zFar)
 {
@@ -60,4 +73,5 @@ TMAPI Mat4 CreateMatrixOrtho(double left, double right, double bottom, double to
     return matrix;
 }
 
+#endif
 #endif

@@ -92,9 +92,13 @@ typedef struct Time {
 #define T_VECTOR3
 #define T_VECTOR4
 #define T_MAT4
+#define T_RECTANGLE
 
-#define DARK_GRAY     (Color){30, 30, 30, 255}
-#define PINK          (Color){200, 40, 180, 255}
+#define TRIGGER_VERTEX_SHADER                           0
+#define TRIGGER_FRAGMENT_SHADER                         1
+
+#define DARK_GRAY                                     (Color){30, 30, 30, 255}
+#define PINK                                          (Color){200, 40, 180, 255}
 
 //Window options related functions
 //============================================================
@@ -102,20 +106,27 @@ TRAPI void InitWindow(const char* title, const unsigned short width, const unsig
 TRAPI bool WindowShouldClose(void);
 TRAPI void WindowShutdown(void);
 TRAPI void CloseWindow(void);
+TRAPI Vector2 GetWindowSize(void);
 
 //Drawing related functions
 //============================================================
 TRAPI void DrawTriangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color);
-TRAPI void DrawRectangle(const Vector2 pos, const int width, const int height, const Color color);
-TRAPI void DrawRectangleExtended(const Rectangle data, const Vector2 origin, const float rotate, const Color color);
+TRAPI void DrawQuad(const Vector2 pos, const Vector2 size, const Color color);
+TRAPI void DrawCircle(const Vector2 center, const float radius, const Color color);
 TRAPI void DrawTexture(const Texture texture, const Vector2 pos, const Color color);
-TRAPI void DrawTextureExtended(const Texture texture, const Rectangle data, const Vector2 origin, const float rotate, const Color color);
+TRAPI void DrawTextureExtended(const Texture texture, const Rectangle data, const Color color);
 TRAPI void SetBackground(const Color color);
 
 //Texture related functions
 //============================================================
 TRAPI Image ReadImageFile(const char* filepath);
 TRAPI Texture CreateTexture(const char* filepath);
+
+//Shader related functions
+//============================================================
+TRAPI unsigned int LoadShader(const char* vShaderCode, const char* fShaderCode);
+TRAPI void BeginShader(const unsigned int shader);
+TRAPI void EndShader();
 
 //Frame update related fuctions
 //============================================================

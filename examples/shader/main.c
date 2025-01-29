@@ -5,10 +5,15 @@
 signed main()
 {
   InitWindow("Hello Rectangle", 1920, 1080);
+  unsigned int len;
+  char* fragCode = ReadTextFile("shader.frag", &len);
+  unsigned int shader = LoadShader(NULL, fragCode);
+  Texture texture = CreateTexture("./test.png");
   while(!WindowShouldClose()) {
     SetBackground(DARK_GRAY);
-    //Do draw Rectangle
-    DrawQuad((Vector2){480.0f, 270.0f}, (Vector2){600.0f, 400.0f}, (Color){180, 30, 200, 255});
+    
+    DrawTexture(texture, (Vector2){300, 300}, (Color){255, 255, 255, 255});
+    
     InputPolling();
     GFXUpdate();
   }

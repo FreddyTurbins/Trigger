@@ -4,11 +4,10 @@
 
 signed main()
 {
-  InitWindow("Hello Rectangle", 1920, 1080);
+  InitWindow("Hello Triangle", 720, 460);
   while(!WindowShouldClose()) {
     SetBackground(DARK_GRAY);
-    //Do draw Rectangle
-    DrawQuad((Vector2){480.0f, 270.0f}, (Vector2){600.0f, 400.0f}, (Color){180, 30, 200, 255});
+    DrawCircle((Vector2){360.0f, 230.0f}, 100, (Color){0, 180, 90, 255});
     InputPolling();
     GFXUpdate();
   }
