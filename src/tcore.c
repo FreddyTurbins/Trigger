@@ -12,15 +12,24 @@ static RendererApi currentRendererApi = NONE_API;
 typedef struct {unsigned short width; unsigned short height;} Resolution;
 
 typedef struct TriggerWindow {
-  const char* title;
-  bool vSync;
-  bool fullscreen;
-  bool shouldClose;
-  Resolution screen;
-  Resolution render;
+  const char*           title;
+  bool                  vSync;
+  bool                  fullscreen;
+  bool                  shouldClose;
+  Resolution            screen;
+  Resolution            render;
 } TriggerWindow;
 
+typedef struct Time {
+  double                lastTime;
+  double                deltaTime;
+  double                initialTime;
+  double                timeFramerateCap;
+  unsigned long long    frameCounter;
+} Time;
+
 TriggerWindow triggerWindow = {0};
+Time          time          = {0};
 
 #define COLOR_NUMBER(X)                    ((X).r<<(8*3))+((X).g<<(8*2))+((X).b<<(8*1))+(X).a
 
@@ -46,7 +55,10 @@ void InitWindow(const char* title, const unsigned short width, const unsigned sh
   tglInit();
   currentRendererApi = TEGL;
   Mat4 projMatrix = CreateMatrixOrtho(0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f);
-  tglSetUniformMat4f("projMatrix", projMatrix);
+  tglSetRenderMatProjection(projMatrix);
+  time.initialTime = glfwGetTime();
+  time.lastTime = time.initialTime;
+  time.frameCounter = 0;
   #endif
 }
 
@@ -78,7 +90,7 @@ Vector2 GetWindowSize(void)
 //============================================================
 void DrawTriangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color)
 {
-  
+  tglDrawTriangle(v1, v2, v3, COLOR_NUMBER(color));
 }
 
 void DrawQuad(const Vector2 pos, const Vector2 size, const Color color)
@@ -119,18 +131,6 @@ void CloseWindow(void)
   #if defined(PLATFORM_DESKTOP)
   OpenGLCloseWindow();
   #endif
-}
-
-void GFXUpdate(void) {
-#if defined(PLATFORM_DESKTOP)
-  OpenGLSwapScreenBuffer();
-  tglClearScreenBuffer();
-  tglFlush2DRenderer();
-#endif
-}
-
-void InputPolling(void) {
-
 }
 
 //Texture functions
@@ -196,15 +196,22 @@ Image ReadImageFile(const char* filepath)
 
 //Shader functions
 //============================================================
-unsigned int LoadShader(const char* vShaderCode, const char* fShaderCode)
+unsigned int LoadShader(const char* vShaderPath, const char* fShaderPath)
 {
   int program = 0;
-  int vShader = 0, fShader = 0;
-  vShader = (vShaderCode == NULL || vShaderCode[0] == '\0') ?
-      tglGetDefaultVertexShader() : tglCompileShader(vShaderCode, TRIGGER_VERTEX_SHADER);
-
-  fShader = (fShaderCode == NULL || fShaderCode[0] == '\0') ?
-    tglGetDefaultFragmentShader() : tglCompileShader(fShaderCode, TRIGGER_FRAGMENT_SHADER);
+  int vShader = tglGetDefaultVertexShader(), fShader = tglGetDefaultFragmentShader();
+  if (vShaderPath != NULL && vShaderPath[0] != '\0') {
+    unsigned int len = 0;
+    char* vShaderCode = ReadTextFile(vShaderPath, &len);
+    vShader = tglCompileShader(vShaderCode, TRIGGER_VERTEX_SHADER);
+    free(vShaderCode);
+  }
+  if (fShaderPath != NULL && fShaderPath[0] != '\0') {
+    unsigned int len = 0;
+    char* fShaderCode = ReadTextFile(fShaderPath, &len);
+    fShader = tglCompileShader(fShaderCode, TRIGGER_FRAGMENT_SHADER);
+    free(fShaderCode);
+  }
   
   program = tglCreateShaderProgram(vShader, fShader);
   return program;
@@ -220,4 +227,50 @@ void EndShader()
 {
   tglFlushQuad2DRenderer();
   tglSetShader(tglGetDefaultShader());
+}
+
+void SetShaderUniformMat4(const unsigned int shader, char* uniformName, Mat4 mat)
+{
+  unsigned int currentShader = tglGetCurrentShader();
+  if (shader == currentShader) {tglSetUniformMat4f(uniformName, mat); return;}
+  tglSetShader(shader);
+  tglSetUniformMat4f(uniformName, mat);
+}
+
+void GFXUpdate(void) {
+#if defined(PLATFORM_DESKTOP)
+  OpenGLSwapScreenBuffer();
+  tglClearScreenBuffer();
+  tglFlush2DRenderer();
+  double currentTime = glfwGetTime();
+  time.deltaTime = currentTime - time.lastTime;
+  time.frameCounter++;
+#endif
+}
+
+void InputPolling(void) {
+
+}
+
+//Time related fuctions
+//============================================================
+double GetDeltaTime(void)
+{
+  return time.deltaTime;
+}
+
+int GetFrameRate(void)
+{
+  return (1/time.deltaTime)*time.frameCounter;
+}
+
+double GetTime(void)
+{
+  return time.lastTime - time.initialTime;
+}
+
+void SetFrameRateCap(int frameRate)
+{
+  frameRate = 0;
+  TriggerLogCall(LOG_WARN, "SetFrameRateCap method is not defined");
 }

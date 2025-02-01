@@ -28,6 +28,8 @@ typedef struct TriggerGLData {
   unsigned int            quadFShader;
   unsigned int            quadShader;
   unsigned int            currentShader;
+
+  Mat4                    projectionMatrix;
 } TriggerGLData;
 
 #ifdef __cplusplus
@@ -48,6 +50,12 @@ TRAPI unsigned int tglCreateIndexBuffer(const unsigned int* data, const unsigned
 //============================================================
 TRAPI void tglSetUniformMat4f(char* uniformName, Mat4 mat);
 TRAPI void tglSetVertex3f(const float x, const float y, const float z);
+TRAPI void tglSetUniformSamplersTextures(void);
+
+//General data related functions
+//============================================================
+TRAPI void tglSetRenderMatProjection(Mat4 mat);
+TRAPI Mat4 tglGetRenderMatProjection(void);
 
 //General render related functions
 //============================================================
@@ -67,6 +75,7 @@ TRAPI unsigned int tglGetDefaultFragmentShader(void);
 TRAPI unsigned int tglGetDefaultShader(void);
 TRAPI void tglSetShader(const unsigned int shader);
 TRAPI void tglBindCurrentShader();
+TRAPI unsigned int tglGetCurrentShader(void);
 
 #if defined(TEGL_IMPLEMENTATION)
 
@@ -76,7 +85,8 @@ static TriggerGLData TEGLData = {0};
 //Static modules related functions
 //============================================================
 static void tglLoadDefaultShader(void);
-//TGL initialize related functions
+
+//TGL initialize methods
 //============================================================
 void tglInit()
 {
@@ -84,7 +94,7 @@ void tglInit()
   tglInit2DRenderer();
 }
 
-//Vertex buffer functions
+//Vertex buffer methods
 //============================================================
 unsigned int tglCreateVertexBuffer(const size_t size)
 {
@@ -129,6 +139,27 @@ void tglSetUniformMat4f(char* uniformName, Mat4 mat)
     mat.m12, mat.m13, mat.m14, mat.m15
   };
   glUniformMatrix4fv(loc, 1, GL_FALSE, fMat);
+}
+
+void tglSetUniformSamplersTextures(void)
+{
+  int loc = glGetUniformLocation(TEGLData.currentShader, "textures");
+  int samplers[32];
+  for(int i = 0; i < 32; i++)
+    samplers[i] = i;
+  glUniform1iv(loc, 32, samplers);
+}
+
+//General data methods
+//============================================================
+void tglSetRenderMatProjection(Mat4 mat)
+{
+  TEGLData.projectionMatrix = mat;
+}
+
+Mat4 tglGetRenderMatProjection(void)
+{
+  return TEGLData.projectionMatrix;
 }
 
 //General render
@@ -195,7 +226,7 @@ unsigned int tglCompileShader(const char* shaderText, int type)
     message[countResult-1] = '\0';
     TriggerLogCall(LOG_WARN, "SHADER -> [ID: %d] Failed compiling %s shader\n%s", id,
         (type == GL_VERTEX_SHADER) ? "vertex" : "fragment", message);
-    free(message);
+    FreeTextData(message);
   } else {
     TriggerLogCall(LOG_DEBUG, "SHADER -> [ID: %d] Succesfully compile %s shader", id,
         (type == GL_VERTEX_SHADER) ? "vertex" : "fragment");
@@ -221,7 +252,7 @@ unsigned int tglCreateShaderProgram(const unsigned int vShader, const unsigned i
     glGetProgramInfoLog(program, countResult, &countResult, message);
     message[countResult-1] = '\0';
     TriggerLogCall(LOG_WARN, "SHADER -> [ID: %d] Program failed linking\n%s", program, message);
-    free(message);
+    FreeTextData(message);
   } else {
     TriggerLogCall(LOG_DEBUG, "SHADER -> [ID: %d] Program link succesfuly", program);
   }
@@ -247,11 +278,16 @@ void tglSetShader(const unsigned int shader)
 {
   TEGLData.currentShader = shader;
 }
-/*
+
 void tglBindCurrentShader()
 {
   glUseProgram(TEGLData.currentShader);
-}*/
+}
+
+unsigned int tglGetCurrentShader(void)
+{
+  return TEGLData.currentShader;
+}
 
 //Static modules
 //============================================================
@@ -300,12 +336,6 @@ static void tglLoadDefaultShader(void)
 
   if (TEGLData.quadShader > 0) {
     TriggerLogCall(LOG_INFO, "SHADER -> [ID %d] Default shader loaded", TEGLData.quadShader);
-    
-    int loc = glGetUniformLocation(TEGLData.quadShader, "textures");
-    int samplers[32];
-    for(int i = 0; i < 32; i++)
-      samplers[i] = i;
-    glUniform1iv(loc, 32, samplers);
   } else {
     TriggerLogCall(LOG_WARN, "SHADER -> [ID %d] Default shader failed loading", TEGLData.quadShader);
   }

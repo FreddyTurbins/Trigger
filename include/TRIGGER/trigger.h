@@ -84,10 +84,6 @@ typedef struct Mat4 {
   float m12, m13, m14, m15;
 } Mat4;
 
-typedef struct Time {
-
-} Time;
-
 #define T_VECTOR2
 #define T_VECTOR3
 #define T_VECTOR4
@@ -127,6 +123,7 @@ TRAPI Texture CreateTexture(const char* filepath);
 TRAPI unsigned int LoadShader(const char* vShaderCode, const char* fShaderCode);
 TRAPI void BeginShader(const unsigned int shader);
 TRAPI void EndShader();
+TRAPI void SetShaderUniformMat4(const unsigned int shader, char* uniformName, Mat4 mat);
 
 //Frame update related fuctions
 //============================================================
@@ -135,12 +132,15 @@ TRAPI void InputPolling(void);
 
 //Time related fuctions
 //============================================================
+TRAPI double GetDeltaTime(void);
+TRAPI int GetFrameRate(void);
 TRAPI double GetTime(void);
+TRAPI void SetFrameRateCap(int frameRate);
 
 //File related functions
 //============================================================
 TRAPI char* ReadTextFile(const char* filepath, unsigned int* readLen);
-TRAPI void FreeTextData(unsigned char* data);
+TRAPI void FreeTextData(void* data);
 
 //Util related functions
 //============================================================

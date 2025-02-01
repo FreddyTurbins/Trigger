@@ -36,7 +36,8 @@ int InitOpenGL(void)
     TriggerLogCall(LOG_FATAL, "Failed initializing GLAD");
     return -1;
   }
-  //glViewport(0, 0, triggerWindow.render.width, triggerWindow.render.height);
+  glfwSwapInterval(0);
+
   return 0;
 }
 
@@ -59,9 +60,4 @@ void OpenGLSwapScreenBuffer(void)
 void OpenGLInputPolling(void)
 {
 
-}
-
-double GetTime(void)
-{
-  return glfwGetTime();
 }

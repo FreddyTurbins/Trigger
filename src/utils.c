@@ -7,7 +7,7 @@
 
 static int loggingLevel = LOG_INFO;
 
-void FreeTextData(unsigned char* data)
+void FreeTextData(void* data)
 {
   free(data);
 }

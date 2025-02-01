@@ -16,24 +16,33 @@
 #define BLUE(X)                                       ((X)>>(8*1)&0xFF)
 #define ALPHA(X)                                      ((X)>>(8*0)&0xFF)
 
-typedef struct VertexQuad {
+typedef struct QuadVertex {
   Vector3 position;
   Vector4 color;
   Vector2 texCoord;
   float texIndex;
-} VertexQuad;
+} QuadVertex;
+
+typedef struct CircleVertex
+	{
+		//Vector3 WorldPosition;
+		//Vector3 LocalPosition;
+		Vector4 color;
+		float thickness;
+		float fade;
+} CircleVetex;
 
 typedef struct RenderBatchData {
   unsigned int*           textureSlots;
   unsigned int            textureSlotsIndex;
   unsigned int            defaultTexture;
 
-  unsigned int            quadVA;
-  unsigned int            quadVB;
-  unsigned int            quadIB;
+  unsigned int            quadVertexArray;
+  unsigned int            quadVertexBuffer;
+  unsigned int            quadIndexBuffer;
   unsigned int            quadIndexCount;
-  VertexQuad*             quadBufferptr;
-  VertexQuad*             quadBuffer;
+  QuadVertex*             quadBufferptr;
+  QuadVertex*             quadBuffer;
 } RenderBatchData;
 
 typedef struct DrawStats {
@@ -49,22 +58,22 @@ static DrawStats stats = {0};
 void tglInit2DRenderer(void)
 {
   batch.textureSlots = (unsigned int*)calloc(TEGL_MAX_TEXTURES, sizeof(unsigned int));
-  batch.quadBuffer = (VertexQuad*)calloc(TEGL_MAX_QUADS, sizeof(struct VertexQuad));
+  batch.quadBuffer = (QuadVertex*)calloc(TEGL_MAX_QUADS, sizeof(struct QuadVertex));
   batch.quadBufferptr = batch.quadBuffer;
 
-  glCreateVertexArrays(1, &batch.quadVA);
-  glBindVertexArray(batch.quadVA);
+  glCreateVertexArrays(1, &batch.quadVertexArray);
+  glBindVertexArray(batch.quadVertexArray);
  
-  batch.quadVB = tglCreateVertexBuffer(TEGL_MAX_QUADS*sizeof(VertexQuad));
+  batch.quadVertexBuffer = tglCreateVertexBuffer(TEGL_MAX_QUADS*sizeof(QuadVertex));
 
-  glEnableVertexArrayAttrib(batch.quadVA, 0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexQuad), (const void*)offsetof(VertexQuad, position));
-  glEnableVertexArrayAttrib(batch.quadVA, 1);
-  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(VertexQuad), (const void*)offsetof(VertexQuad, color));
-  glEnableVertexArrayAttrib(batch.quadVA, 2);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VertexQuad), (const void*)offsetof(VertexQuad, texCoord));
-  glEnableVertexArrayAttrib(batch.quadVA, 3);
-  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(VertexQuad), (const void*)offsetof(VertexQuad, texIndex));
+  glEnableVertexArrayAttrib(batch.quadVertexArray, 0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, position));
+  glEnableVertexArrayAttrib(batch.quadVertexArray, 1);
+  glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, color));
+  glEnableVertexArrayAttrib(batch.quadVertexArray, 2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, texCoord));
+  glEnableVertexArrayAttrib(batch.quadVertexArray, 3);
+  glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, texIndex));
   
   unsigned int indices[TEGL_MAX_INDICES] = {0};
   for (long k = 0, offset = 0; k < TEGL_MAX_INDICES; k+=6, offset+=4) {
@@ -77,7 +86,7 @@ void tglInit2DRenderer(void)
     indices[k + 5] = 0 + offset;
   }
   
-  batch.quadIB = tglCreateIndexBuffer(indices, TEGL_MAX_INDICES);;
+  batch.quadIndexBuffer = tglCreateIndexBuffer(indices, TEGL_MAX_INDICES);;
 
   unsigned char pixels[4] = { 255, 255, 255, 255 };
   batch.defaultTexture = tglCreateTexture(pixels, 1, 1, GL_RGBA);
@@ -98,18 +107,19 @@ void tglStartBatch(void)
 void tglFlushQuad2DRenderer(void)
 {
   if (batch.quadIndexCount) {
-
     size_t size = (uint8_t*)batch.quadBufferptr - (uint8_t*)batch.quadBuffer;
-    glBindBuffer(GL_ARRAY_BUFFER, batch.quadVB);
+    glBindBuffer(GL_ARRAY_BUFFER, batch.quadVertexBuffer);
     glBufferSubData(GL_ARRAY_BUFFER, 0, size, batch.quadBuffer);
 
     for (uint32_t i = 0; i < batch.textureSlotsIndex; i++) {
       glBindTextureUnit(i, batch.textureSlots[i]);
     }
 
-    //tglBindCurrentShader();
+    tglBindCurrentShader();
+    tglSetUniformSamplersTextures();
+    tglSetUniformMat4f("projMatrix", tglGetRenderMatProjection());
 
-    glBindVertexArray(batch.quadVA);
+    glBindVertexArray(batch.quadVertexArray);
     glDrawElements(GL_TRIANGLES, batch.quadIndexCount, GL_UNSIGNED_INT, NULL);
 
     batch.quadBufferptr = batch.quadBuffer;
@@ -126,6 +136,39 @@ void tglFlush2DRenderer(void)
 
 //2D Renderer drawing related functions
 //============================================================
+void tglDrawTriangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const unsigned long color)
+{
+  if (batch.quadIndexCount >= TEGL_MAX_INDICES) tglFlush2DRenderer();
+
+  const Vector4 color4f = {
+    (float)RED(color)/255, (float)GREEN(color)/255, (float)BLUE(color)/255, (float)ALPHA(color)/255
+  };
+  const Vector3 vertexPosition[4] = {
+    {v1.x, v1.y, 0.0f},
+    {v2.x, v2.y, 0.0f},
+    {v2.x, v2.y, 0.0f},
+    {v3.x, v3.y, 0.0f}
+  };
+  const Vector2 textureCoord[4] = {
+    {0.0f, 0.0f},
+    {1.0f, 0.0f},
+    {1.0f, 1.0f},
+    {0.0f, 1.0f}
+  };
+  const float textureIndex = 0.0f;                       //DEFAULT
+  
+  for (int k = 0; k < 4; k++) {
+    batch.quadBufferptr->position = vertexPosition[k];
+    batch.quadBufferptr->color    = color4f;
+    batch.quadBufferptr->texCoord = textureCoord[k];
+    batch.quadBufferptr->texIndex = textureIndex;
+    batch.quadBufferptr++;
+  }
+  
+  batch.quadIndexCount += 6;
+  stats.quadCount++;
+}
+
 void tglDrawQuad(const Rectangle data, const unsigned long color)
 {
   if (batch.quadIndexCount >= TEGL_MAX_INDICES) tglFlush2DRenderer();
