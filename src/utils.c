@@ -7,22 +7,22 @@
 
 static int loggingLevel = LOG_INFO;
 
-void FreeTextData(void* data)
+void free_text_data(void* data)
 {
   free(data);
 }
 
 //Read data from a text file into a buffer
-char* ReadTextFile(const char* filepath, unsigned int* readLen)
+char* read_text_file(const char* filepath, unsigned int* read_len)
 {
   char* text = NULL;
   if (filepath == NULL || filepath[0] == '\0') {
-    TriggerLogCall(LOG_WARN, "FILEIO -> Invalid name filepath");
+    trigger_log(LOG_WARN, "FILEIO -> Invalid name filepath");
     return text;
   }
   FILE* file = fopen(filepath, "rb");
   if (file == NULL) {
-    TriggerLogCall(LOG_WARN, "FILEIO -> [%s] File failed to open", filepath);
+    trigger_log(LOG_WARN, "FILEIO -> [%s] File failed to open", filepath);
     return text;
   }
 
@@ -30,34 +30,34 @@ char* ReadTextFile(const char* filepath, unsigned int* readLen)
   unsigned int count = (unsigned int)ftell(file);
   fseek(file, 0, SEEK_SET);
   if(count <= 0) {
-    TriggerLogCall(LOG_WARN, "FILEIO -> [%s] File failed to read", filepath);
+    trigger_log(LOG_WARN, "FILEIO -> [%s] File failed to read", filepath);
     return text;
   }
 
   text = (char*)malloc((count+1)*sizeof(char));
   if (text == NULL) {
-    TriggerLogCall(LOG_WARN, "FILEIO -> [%s] Failed to allocate memory into buffer", filepath);
+    trigger_log(LOG_WARN, "FILEIO -> [%s] Failed to allocate memory into buffer", filepath);
     return text;
   }
 
-  *readLen = (unsigned int)fread(text, sizeof(char), count, file);
-  text[*readLen] = '\0';
+  *read_len = (unsigned int)fread(text, sizeof(char), count, file);
+  text[*read_len] = '\0';
   fclose(file);
-  TriggerLogCall(LOG_INFO, "FILEIO -> [%s] File loaded", filepath);
-  if (count != *readLen) {
-    TriggerLogCall(LOG_DEBUG, "FILEIO -> [%s] Fread count: %d out of Ftell count: %d", filepath, *readLen, count);
+  trigger_log(LOG_INFO, "FILEIO -> [%s] File loaded", filepath);
+  if (count != *read_len) {
+    trigger_log(LOG_DEBUG, "FILEIO -> [%s] Fread count: %d out of Ftell count: %d", filepath, *read_len, count);
   }
   return text;
 }
 
 //Call a log message
-void TriggerLogCall(const int logLevel, const char* fmt, ...)
+void trigger_log(const int log_level, const char* fmt, ...)
 {
-  if (logLevel < loggingLevel) return;
+  if (log_level < loggingLevel) return;
   va_list args;
   va_start(args, fmt);
 
-  switch (logLevel) {
+  switch (log_level) {
     case LOG_TRACE: printf("\x1b[94m[TRACE]: ");    break;
     case LOG_DEBUG: printf("\x1b[36m[DEBUG]: ");    break;
     case LOG_INFO:  printf("\x1b[32m[INFO]: ");     break;
@@ -70,11 +70,11 @@ void TriggerLogCall(const int logLevel, const char* fmt, ...)
   vfprintf(stdout, fmt, args);
   printf("\x1b[0m\n");
   va_end(args);
-  if (logLevel == LOG_FATAL) exit(EXIT_FAILURE);
+  if (log_level == LOG_FATAL) exit(EXIT_FAILURE);
 }
 
 //Set threshold level to display log calls
-void SetTriggerLogLevel(const int logLevel)
+void set_trigger_log_level(const int log_level)
 {
-  loggingLevel = logLevel;
+  loggingLevel = log_level;
 }

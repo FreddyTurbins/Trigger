@@ -1,0 +1,450 @@
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include "TRIGGER/trigger.h"
+#include "renderer.h"
+
+#define TEGL_MAX_QUADS                                20000
+#define TEGL_MAX_VERTICES                             TEGL_MAX_QUADS*4
+#define TEGL_MAX_INDICES                              TEGL_MAX_QUADS*6
+#define TEGL_MAX_TEXTURES                             32
+
+#define RED(X)                                        ((X)>>(8*3)&0xFF)
+#define GREEN(X)                                      ((X)>>(8*2)&0xFF)
+#define BLUE(X)                                       ((X)>>(8*1)&0xFF)
+#define ALPHA(X)                                      ((X)>>(8*0)&0xFF)
+
+typedef struct QuadVertex {
+  Vector3 position;
+  Vector4 color;
+  Vector2 tex_coord;
+  float tex_index;
+} QuadVertex;
+
+typedef struct DiskVertex {
+  Vector3 world_position;
+  Vector2 local_position;
+  Vector4 color;
+  float thickness;
+  float fade;
+} DiskVertex;
+
+typedef struct RenderBatchData {
+  //unsigned int            quadVShader;
+  //unsigned int            quadFShader;
+  unsigned int            quad_shader;
+  unsigned int            current_shader;
+
+  unsigned int*           texture_slots;
+  unsigned int            texture_slots_index;
+  unsigned int            default_texture;
+  IndexBuffer             quad_index_buffer;
+
+  VertexArrayObject       quad_vertex_array;
+  VertexBuffer            quad_vertex_buffer;
+  unsigned int            quad_index_count;
+  QuadVertex*             quad_buffer_ptr;
+  QuadVertex*             quad_buffer;
+
+  VertexArrayObject       disk_vertex_array;
+  VertexBuffer            disk_vertex_buffer;
+  unsigned int            disk_shader;
+  unsigned int            disk_index_count;
+  DiskVertex*             disk_buffer_ptr;
+  DiskVertex*             disk_buffer;
+} RenderBatchData;
+
+typedef struct DrawStats {
+  uint32_t                quad_count;
+  uint32_t                draw_calls;
+} DrawStats;
+
+static RenderBatchData batch = {0};
+static DrawStats stats = {0};
+
+static void set_samplers_textures(void);
+#define COLOR_NUMBER(X)                    ((X).r<<(8*3))+((X).g<<(8*2))+((X).b<<(8*1))+(X).a
+
+//2D Renderer related functions
+//============================================================
+void init_renderer2d(void)
+{
+  batch.texture_slots = (unsigned int*)calloc(TEGL_MAX_TEXTURES, sizeof(unsigned int));
+  batch.quad_buffer = (QuadVertex*)calloc(TEGL_MAX_VERTICES, sizeof(struct QuadVertex));
+  batch.disk_buffer = (DiskVertex*)calloc(TEGL_MAX_VERTICES, sizeof(struct DiskVertex));
+  batch.quad_buffer_ptr = batch.quad_buffer;
+  batch.disk_buffer_ptr = batch.disk_buffer;
+
+  batch.quad_vertex_array = create_vao();
+  batch.quad_vertex_buffer = create_vertex_buffer(TEGL_MAX_VERTICES*sizeof(QuadVertex));
+
+  set_vao_attribute(batch.quad_vertex_array, 0, 3, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, position));
+  set_vao_attribute(batch.quad_vertex_array, 1, 4, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, color));
+  set_vao_attribute(batch.quad_vertex_array, 2, 2, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, tex_coord));
+  set_vao_attribute(batch.quad_vertex_array, 3, 1, sizeof(QuadVertex), (const void*)offsetof(QuadVertex, tex_index));
+
+  const char* quad_vertex_shader_code = 
+    "#version 450 core                                        \n"
+    "                                                         \n"
+    "layout (location = 0) in vec3 vertexPosition;            \n"
+    "layout (location = 1) in vec4 vertex_color;              \n"
+    "layout (location = 2) in vec2 texture_coord;             \n"
+    "layout (location = 3) in float texture_index;            \n"
+    "                                                         \n"
+    "uniform mat4 projMatrix;                                 \n"
+    "                                                         \n"
+    "out vec4 f_color;                                        \n"
+    "out vec2 f_tex_coord;                                    \n"
+    "out float f_tex_index;                                   \n"
+    "void main()                                              \n"
+    "{                                                        \n"
+    " f_color = vertex_color;                                 \n"
+    " f_tex_coord = texture_coord;                            \n"
+    " f_tex_index = texture_index;                            \n"
+    " gl_Position = projMatrix*vec4(vertexPosition, 1.0);     \n"
+    "}                                                        \n";
+
+  const char* quad_fragment_shader_code =
+    "#version 450 core                                        \n"
+    "                                                         \n"
+    "layout (location = 0) out vec4 color;                    \n"
+    "                                                         \n"
+    "in vec4 f_color;                                         \n"
+    "in vec2 f_tex_coord;                                     \n"
+    "in float f_tex_index;                                    \n"
+    "uniform sampler2D textures[32];                          \n"
+    "void main()                                              \n"
+    "{                                                        \n"
+    " int index = int(f_tex_index);                           \n"
+    " color = f_color*texture(textures[index], f_tex_coord);  \n"
+    "}                                                        \n";
+  batch.quad_shader     = compile_shader(quad_vertex_shader_code, quad_fragment_shader_code);
+  batch.current_shader = batch.quad_shader;
+  bind_shader(batch.current_shader);
+  
+  if (batch.quad_shader > 0) {
+    trigger_log(LOG_INFO, "SHADER -> [ID %d] Default quad shader loaded", batch.quad_shader);
+  } else {
+    trigger_log(LOG_WARN, "SHADER -> [ID %d] Default quad shader failed loading", batch.quad_shader);
+  }
+  
+  unsigned int indices[TEGL_MAX_INDICES] = {0};
+  for (long k = 0, offset = 0; k < TEGL_MAX_INDICES; k+=6, offset+=4) {
+    indices[k + 0] = 0 + offset;
+    indices[k + 1] = 1 + offset;
+    indices[k + 2] = 2 + offset;
+
+    indices[k + 3] = 2 + offset;
+    indices[k + 4] = 3 + offset;
+    indices[k + 5] = 0 + offset;
+  }
+  
+  batch.quad_index_buffer = create_index_buffer(indices, TEGL_MAX_INDICES);
+
+  batch.disk_vertex_array = create_vao();
+  batch.disk_vertex_buffer = create_vertex_buffer(TEGL_MAX_VERTICES*sizeof(DiskVertex));
+  
+  set_vao_attribute(batch.disk_vertex_array, 0, 3, sizeof(DiskVertex), (const void*)offsetof(DiskVertex, world_position));
+  set_vao_attribute(batch.disk_vertex_array, 1, 2, sizeof(DiskVertex), (const void*)offsetof(DiskVertex, local_position));
+  set_vao_attribute(batch.disk_vertex_array, 2, 4, sizeof(DiskVertex), (const void*)offsetof(DiskVertex, color));
+  set_vao_attribute(batch.disk_vertex_array, 3, 1, sizeof(DiskVertex), (const void*)offsetof(DiskVertex, thickness));
+  set_vao_attribute(batch.disk_vertex_array, 4, 1, sizeof(DiskVertex), (const void*)offsetof(DiskVertex, fade));
+  
+  bind_index_buffer(batch.quad_index_buffer);
+
+  const char* diskVertexShaderCode = 
+    "#version 450 core                                                            \n"
+    "                                                                             \n"
+    "layout (location = 0) in vec3 world_position;                                \n"
+    "layout (location = 1) in vec2 local_position;                                \n"
+    "layout (location = 2) in vec4 vertex_color;                                  \n"
+    "layout (location = 3) in float thickness;                                    \n"
+    "layout (location = 4) in float fade;                                         \n"
+    "                                                                             \n"
+    "uniform mat4 projMatrix;                                                     \n"
+    "                                                                             \n"
+    "out vec2 f_local_position;                                                   \n"
+    "out vec4 f_color;                                                            \n"
+    "out float f_thickness;                                                       \n"
+    "out float f_fade;                                                            \n"
+    "void main()                                                                  \n"
+    "{                                                                            \n"
+    " f_local_position = local_position;                                          \n"
+    " f_color = vertex_color;                                                     \n"
+    " f_thickness = thickness;                                                    \n"
+    " f_fade = fade;                                                              \n"
+    " gl_Position = projMatrix*vec4(world_position, 1.0);                         \n"
+    "}                                                                            \n";
+
+  const char* diskFragmentShaderCode =
+    "#version 450 core                                                            \n"
+    "                                                                             \n"
+    "layout (location = 0) out vec4 color;                                        \n"
+    "                                                                             \n"
+    "in vec2 f_local_position;                                                    \n"
+    "in vec4 f_color;                                                             \n"
+    "in float f_thickness;                                                        \n"
+    "in float f_fade;                                                             \n"
+    "void main()                                                                  \n"
+    "{                                                                            \n"
+    " float distance = 1.0 - length(f_local_position);                            \n"
+    " float color_alpha = smoothstep(0.0, f_fade, distance);                      \n"
+    " color_alpha *= smoothstep(f_thickness + f_fade, f_thickness, distance);     \n"
+    " color = f_color;                                                            \n"
+    " color.a *= color_alpha;                                                     \n"
+    "}                                                                            \n";
+
+  batch.disk_shader = compile_shader(diskVertexShaderCode, diskFragmentShaderCode);
+  bind_shader(batch.disk_shader);
+
+  if (batch.disk_shader > 0) {
+    trigger_log(LOG_INFO, "SHADER -> [ID %d] Default disk shader loaded", batch.disk_shader);
+  } else {
+    trigger_log(LOG_WARN, "SHADER -> [ID %d] Default disk shader failed loading", batch.disk_shader);
+  }
+
+  unsigned char pixels[4] = { 255, 255, 255, 255 };
+  //4 should be a define, nr_channel
+  batch.default_texture = create_texture(pixels, 1, 1, 4);
+
+  batch.texture_slots[0] = batch.default_texture;
+  for (int i = 1; i < TEGL_MAX_TEXTURES; i++) {
+    batch.texture_slots[i] = 0;
+  }
+  batch.texture_slots_index = 1;
+}
+
+void start_batch(void)
+{
+  stats.quad_count = 0;
+}
+
+
+void flush_quad_renderer2d(void)
+{
+  if (batch.quad_index_count) {
+    size_t size = (uint8_t*)batch.quad_buffer_ptr - (uint8_t*)batch.quad_buffer;
+    set_vertex_buffer_data(batch.quad_vertex_buffer, batch.quad_buffer, size);
+
+    for (uint32_t i = 0; i < batch.texture_slots_index; i++) {
+      bind_texture_unit(i, batch.texture_slots[i]);
+    }
+
+    bind_shader(batch.current_shader);
+    set_samplers_textures();
+    int loc = get_shader_location(batch.current_shader, "projMatrix");
+    set_shader_uniform_mat4(batch.current_shader, loc, get_render_mat_projection());
+
+    draw_indexed(batch.quad_vertex_array, batch.quad_index_count);
+
+    batch.quad_buffer_ptr = batch.quad_buffer;
+    batch.texture_slots_index = 1;
+    batch.quad_index_count = 0;
+    stats.draw_calls++;
+  }
+}
+
+void flush_renderer2d(void)
+{
+  flush_quad_renderer2d();
+  if (batch.disk_index_count) {
+    size_t size = (uint8_t*)batch.disk_buffer_ptr - (uint8_t*)batch.disk_buffer;
+    set_vertex_buffer_data(batch.disk_vertex_buffer, batch.disk_buffer, size);
+
+    bind_shader(batch.disk_shader);
+    int loc = get_shader_location(batch.disk_shader, "projMatrix");
+    set_shader_uniform_mat4(batch.disk_shader, loc, get_render_mat_projection());
+
+    draw_indexed(batch.disk_vertex_array, batch.disk_index_count);
+
+    batch.disk_buffer_ptr = batch.disk_buffer;
+    batch.disk_index_count = 0;
+    stats.draw_calls++;
+  }
+}
+
+//2D Renderer drawing related functions
+//============================================================
+void draw_triangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color)
+{
+  if (batch.quad_index_count >= TEGL_MAX_INDICES) flush_quad_renderer2d();
+
+  unsigned long parsed_color = COLOR_NUMBER(color);
+  const Vector4 color4f = {
+    (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
+  };
+  const Vector3 vertex_position[4] = {
+    {v1.x, v1.y, 0.0f},
+    {v2.x, v2.y, 0.0f},
+    {v2.x, v2.y, 0.0f},
+    {v3.x, v3.y, 0.0f}
+  };
+  const Vector2 texture_coord[4] = {
+    {0.0f, 0.0f},
+    {1.0f, 0.0f},
+    {1.0f, 1.0f},
+    {0.0f, 1.0f}
+  };
+  const float texture_index = 0.0f;                       //DEFAULT
+  
+  for (int k = 0; k < 4; k++) {
+    batch.quad_buffer_ptr->position  = vertex_position[k];
+    batch.quad_buffer_ptr->color     = color4f;
+    batch.quad_buffer_ptr->tex_coord = texture_coord[k];
+    batch.quad_buffer_ptr->tex_index = texture_index;
+    batch.quad_buffer_ptr++;
+  }
+  
+  batch.quad_index_count += 6;
+  stats.quad_count++;
+}
+
+void draw_quad(const Rectangle data, const Color color)
+{
+  if (batch.quad_index_count >= TEGL_MAX_INDICES) flush_quad_renderer2d();
+  
+  unsigned long parsed_color = COLOR_NUMBER(color);
+  const Vector4 color4f = {
+    (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
+  };
+  const Vector3 vertex_position[4] = {
+    {data.x             , data.y              , 0.0f},  //TOP-LEFT
+    {data.x             , data.y + data.height, 0.0f},  //BOT-LEFT
+    {data.x + data.width, data.y + data.height, 0.0f},  //BOT-RIGHT
+    {data.x + data.width, data.y              , 0.0f}   //TOP-RIGHT
+  };
+  const Vector2 texture_coord[4] = {
+    {0.0f, 0.0f},
+    {1.0f, 0.0f},
+    {1.0f, 1.0f},
+    {0.0f, 1.0f}
+  };
+  const float texture_index = 0.0f;                      //DEFAULT
+  
+  for (int k = 0; k < 4; k++) {
+    batch.quad_buffer_ptr->position  = vertex_position[k];
+    batch.quad_buffer_ptr->color     = color4f;
+    batch.quad_buffer_ptr->tex_coord = texture_coord[k];
+    batch.quad_buffer_ptr->tex_index = texture_index;
+    batch.quad_buffer_ptr++;
+  }
+  
+  batch.quad_index_count += 6;
+  stats.quad_count++;
+}
+
+void draw_disk(const Vector2 center, const float radius, const Color color)
+{
+  draw_disk_thickness(center, radius, 1.0f, color);
+}
+
+void draw_disk_thickness(const Vector2 center, const float radius, float thickness, const Color color)
+{
+  //if (batch.quad_index_count+6 >= TEGL_MAX_INDICES) tglFlush2DRenderer(); IDK YET
+  if (thickness > 1.0f || thickness < 0.0f) thickness = 1.0f;
+  const Vector3 world_position[4] = {
+    {center.x - radius, center.y - radius, 0.0f},  //TOP-LEFT
+    {center.x - radius, center.y + radius, 0.0f},  //BOT-LEFT
+    {center.x + radius, center.y + radius, 0.0f},  //BOT-RIGHT
+    {center.x + radius, center.y - radius, 0.0f}   //TOP-RIGHT
+  };
+  const Vector2 local_position[4] = {
+    {-1.0f, -1.0f},
+    { 1.0f, -1.0f},
+    { 1.0f, 1.0f},
+    {-1.0f, 1.0f}
+  };
+  unsigned long parsed_color = COLOR_NUMBER(color);
+  const Vector4 color4f = {
+    (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
+  };
+  const float fade = 0.005;
+  
+  for (int k = 0; k < 4; k++) {
+    batch.disk_buffer_ptr->world_position = world_position[k];
+    batch.disk_buffer_ptr->local_position = local_position[k];
+    batch.disk_buffer_ptr->color         = color4f;
+    batch.disk_buffer_ptr->thickness     = thickness;
+    batch.disk_buffer_ptr->fade          = fade;
+    batch.disk_buffer_ptr++;
+  }
+  
+  batch.disk_index_count += 6;
+  stats.quad_count++;
+}
+
+void draw_texture(const Texture texture, const Vector2 pos, const Color color)
+{
+  draw_texture_extended(texture, (Rectangle){pos.x, pos.y, texture.width, texture.height}, 1.0, color);  
+}
+
+void draw_texture_extended(const Texture texture, const Rectangle data, const float scale, const Color color)
+{
+  if (batch.quad_index_count >= TEGL_MAX_INDICES) flush_quad_renderer2d();
+  unsigned long parsed_color = COLOR_NUMBER(color);
+  const Vector4 color4f = {
+    (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
+  };
+  const Vector3 vertex_position[4] = {
+    {data.x                     , data.y                      , 0.0f},  //TOP-LEFT
+    {data.x                     , data.y + data.height * scale, 0.0f},  //BOT-LEFT
+    {data.x + data.width * scale, data.y + data.height * scale, 0.0f},  //BOT-RIGHT
+    {data.x + data.width * scale, data.y                      , 0.0f}   //TOP-RIGHT
+  };
+  const Vector2 texture_coord[4] = {
+    {0.0f, 1.0f},
+    {0.0f, 0.0f},
+    {1.0f, 0.0f},
+    {1.0f, 1.0f}
+  };
+  
+  float texture_index = 0.0f;                            //DEFAULT
+  for (uint32_t k = 1; k < batch.texture_slots_index; k++)
+  {
+    if (batch.texture_slots[k] == texture.id) {
+      texture_index = (float)k;
+      break;
+    }
+  }
+
+  if (texture_index == 0.0f) {
+    if (batch.texture_slots_index >= TEGL_MAX_TEXTURES) flush_quad_renderer2d();
+
+    texture_index = (float)batch.texture_slots_index;
+    batch.texture_slots[batch.texture_slots_index] = texture.id;
+    batch.texture_slots_index++;
+  }
+
+  for (int k = 0; k < 4; k++) {
+    batch.quad_buffer_ptr->position = vertex_position[k];
+    batch.quad_buffer_ptr->color    = color4f;
+    batch.quad_buffer_ptr->tex_coord = texture_coord[k];
+    batch.quad_buffer_ptr->tex_index = texture_index;
+    batch.quad_buffer_ptr++;
+  }
+  
+  batch.quad_index_count += 6;
+  stats.quad_count++;
+}
+
+void begin_shader(unsigned int shader)
+{
+  flush_quad_renderer2d();
+  batch.current_shader = shader;
+}
+
+void end_shader(void)
+{
+  flush_quad_renderer2d();
+  batch.current_shader = batch.quad_shader;
+}
+
+//Static methods
+static void set_samplers_textures(void)
+{
+  int loc = get_shader_location(batch.current_shader, "textures");
+  int samplers[32];
+  for(int i = 0; i < 32; i++)
+    samplers[i] = i;
+  set_uniform1iv(loc, 32, samplers);
+}

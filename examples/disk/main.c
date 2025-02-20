@@ -7,16 +7,12 @@
 signed main()
 {
   init_window("Hello Triangle", 720, 460);
-  init_renderer2d();
   while(!window_should_close()) {
-    start_batch();
     set_background(DARK_GRAY);
     
-    draw_triangle((Vector2){180.0f, 115.0f}, (Vector2){540.0f, 115.0f}, (Vector2){360.0f, 345.0f}, (Color){0, 180, 90, 255});
-    printf("FPS: %d\n", get_framerate());
+    draw_disk_thickness((Vector2){360.0f, 230.0f}, 200, 0.2f, (Color){0, 180, 90, 255});
     input_polling();
     gfx_update();
-    flush_renderer2d();
   }
   close_window();
   return 0;

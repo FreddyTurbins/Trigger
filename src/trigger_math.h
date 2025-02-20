@@ -56,11 +56,11 @@ typedef struct Rectangle {
 } Rectangle;
 #endif
 
-TMAPI Mat4 CreateMatrixOrtho(double left, double right, double bottom, double top, double zNear, double zFar);
+TMAPI Mat4 create_matrix_ortho(double left, double right, double bottom, double top, double zNear, double zFar);
 
 #if defined(TMATH_IMPLEMENTATION)
 
-TMAPI Mat4 CreateMatrixOrtho(double left, double right, double bottom, double top, double zNear, double zFar)
+TMAPI Mat4 create_matrix_ortho(double left, double right, double bottom, double top, double zNear, double zFar)
 {
     Mat4 matrix = {0};
     matrix.m0 = 2.0f / (right - left);

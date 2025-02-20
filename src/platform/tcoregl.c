@@ -12,20 +12,20 @@ typedef struct {
   GLFWwindow *m_window;
 } PlatformData;
 
-extern TriggerWindow triggerWindow;
+extern TriggerWindow trigger_window;
 PlatformData platform = {0};
 
-int InitOpenGL(void)
+int init_opengl(void)
 {
   int result = glfwInit();
   if (result == GLFW_FALSE) { 
-    TriggerLogCall(LOG_FATAL, "Failed to initialize GLFW");
+    trigger_log(LOG_FATAL, "Failed to initialize GLFW");
     return -1;
   }
-  platform.m_window = glfwCreateWindow(triggerWindow.render.width, triggerWindow.render.height, triggerWindow.title, NULL, NULL);
+  platform.m_window = glfwCreateWindow(trigger_window.render.width, trigger_window.render.height, trigger_window.title, NULL, NULL);
   if(!platform.m_window) 
   {
-    TriggerLogCall(LOG_FATAL, "Fail creating window");
+    trigger_log(LOG_FATAL, "Fail creating window");
     glfwTerminate();
     return -1;
   }
@@ -33,31 +33,33 @@ int InitOpenGL(void)
   glfwMakeContextCurrent(platform.m_window);
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
   {
-    TriggerLogCall(LOG_FATAL, "Failed initializing GLAD");
+    trigger_log(LOG_FATAL, "Failed initializing GLAD");
     return -1;
   }
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_BLEND);
+  
   glfwSwapInterval(0);
-
   return 0;
 }
 
-bool OpenGLShouldClose(void)
+bool opengl_should_close(void)
 {
   return glfwWindowShouldClose(platform.m_window);
 }
 
-void OpenGLCloseWindow(void)
+void opengl_close_window(void)
 {
   glfwTerminate();
 }
 
-void OpenGLSwapScreenBuffer(void)
+void opengl_swap_screen_buffer(void)
 {
   glfwSwapBuffers(platform.m_window);
   glfwPollEvents();
 }
 
-void OpenGLInputPolling(void)
+void opengl_input_polling(void)
 {
 
 }
