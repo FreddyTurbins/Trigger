@@ -18,6 +18,18 @@ extern "C" {
   #define TRAPI
 #endif
 
+typedef struct SubTexture {
+  unsigned int id;
+  float min[2];
+  float max[2];
+  unsigned int width;
+  unsigned int height;
+} SubTexture;
+
+//SpriteSheet related functions
+//============================================================
+TRAPI SubTexture create_sub_texture(const Texture texture, const Vector2 coords, const Vector2 cell_size, const Vector2 sprite_size);
+
 //2D Renderer related functions
 //============================================================
 TRAPI void init_renderer2d(void);
@@ -33,6 +45,8 @@ TRAPI void draw_disk(const Vector2 center, const float radius, const Color color
 TRAPI void draw_disk_thickness(const Vector2 center, const float radius, float thickness, const Color color);
 TRAPI void draw_texture(const Texture texture, const Vector2 pos, const Color color);
 TRAPI void draw_texture_extended(const Texture texture, const Rectangle data, const float scale, const Color color);
+TRAPI void draw_sub_texture(const SubTexture sub_texture, const Vector2 pos, const Color color);
+TRAPI void draw_sub_texture_extended(const SubTexture sub_texture, const Rectangle data, const float scale, const Color color);
 
 //Shader mode functions
 //============================================================

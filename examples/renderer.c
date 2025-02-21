@@ -65,6 +65,30 @@ static DrawStats stats = {0};
 static void set_samplers_textures(void);
 #define COLOR_NUMBER(X)                    ((X).r<<(8*3))+((X).g<<(8*2))+((X).b<<(8*1))+(X).a
 
+//SpriteSheet related functions
+//============================================================
+SubTexture create_sub_texture(const Texture texture, const Vector2 coords, const Vector2 cell_size, const Vector2 sprite_size)
+{
+  if (texture.id == 0) {
+    trigger_log(LOG_WARN, "SUBTEXTURE -> Invalid texture");
+  }
+  SubTexture sub_texture = {
+    .id = texture.id,
+    .min = {
+      (coords.x * cell_size.x) / texture.width,
+      (coords.y * cell_size.y) / texture.height
+    },
+    .max = {
+      ((coords.x + sprite_size.x) * cell_size.x) / texture.width,
+      ((coords.y + sprite_size.y) * cell_size.y) / texture.height
+    },
+    .width = cell_size.x,
+    .height = cell_size.y
+  };
+
+  return sub_texture;
+}
+
 //2D Renderer related functions
 //============================================================
 void init_renderer2d(void)
@@ -426,6 +450,62 @@ void draw_texture_extended(const Texture texture, const Rectangle data, const fl
   batch.quad_index_count += 6;
   stats.quad_count++;
 }
+
+void draw_sub_texture(const SubTexture sub_texture, const Vector2 pos, const Color color)
+{
+  draw_sub_texture_extended(sub_texture, (Rectangle){pos.x, pos.y, sub_texture.width, sub_texture.height}, 1.0, color); 
+}
+
+void draw_sub_texture_extended(const SubTexture sub_texture, const Rectangle data, const float scale, const Color color)
+{
+  if (batch.quad_index_count >= TEGL_MAX_INDICES) flush_quad_renderer2d();
+  unsigned long parsed_color = COLOR_NUMBER(color);
+  const Vector4 color4f = {
+    (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
+  };
+  const Vector3 vertex_position[4] = {
+    {data.x                     , data.y                      , 0.0f},  //TOP-LEFT
+    {data.x                     , data.y + data.height * scale, 0.0f},  //BOT-LEFT
+    {data.x + data.width * scale, data.y + data.height * scale, 0.0f},  //BOT-RIGHT
+    {data.x + data.width * scale, data.y                      , 0.0f}   //TOP-RIGHT
+  };
+  const Vector2 texture_coord[4] = {
+    {sub_texture.min[0], sub_texture.max[1]},
+    {sub_texture.min[0], sub_texture.min[1]},
+    {sub_texture.max[0], sub_texture.min[1]},
+    {sub_texture.max[0], sub_texture.max[1]}
+  };
+  
+  float texture_index = 0.0f;                            //DEFAULT
+  for (uint32_t k = 1; k < batch.texture_slots_index; k++)
+  {
+    if (batch.texture_slots[k] == sub_texture.id) {
+      texture_index = (float)k;
+      break;
+    }
+  }
+
+  if (texture_index == 0.0f) {
+    if (batch.texture_slots_index >= TEGL_MAX_TEXTURES) flush_quad_renderer2d();
+
+    texture_index = (float)batch.texture_slots_index;
+    batch.texture_slots[batch.texture_slots_index] = sub_texture.id;
+    batch.texture_slots_index++;
+  }
+
+  for (int k = 0; k < 4; k++) {
+    batch.quad_buffer_ptr->position  = vertex_position[k];
+    batch.quad_buffer_ptr->color     = color4f;
+    batch.quad_buffer_ptr->tex_coord = texture_coord[k];
+    batch.quad_buffer_ptr->tex_index = texture_index;
+    batch.quad_buffer_ptr++;
+  }
+  
+  batch.quad_index_count += 6;
+  stats.quad_count++;
+
+}
+
 
 void begin_shader(unsigned int shader)
 {
