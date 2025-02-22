@@ -103,6 +103,17 @@ void draw_indexed(const VertexArrayObject vertex_array_object, const unsigned in
   tgl_draw_triangles(index_count);
 }
 
+void draw_lines(const VertexArrayObject vertex_array_object, const unsigned int vertex_count)
+{
+  tgl_bind_vao(vertex_array_object);
+  tgl_draw_lines(vertex_count);
+}
+
+void set_line_thickness(const float thickness)
+{
+  tgl_set_line_thickness(thickness);
+}
+
 void set_background(const Color color)
 {
   switch (current_renderer_api) {
@@ -129,6 +140,11 @@ void set_uniform1iv(int loc, int samples, int* samplers)
 void bind_texture_unit(unsigned int index, unsigned int slot)
 {
   tgl_bind_texture_unit(index, slot);
+}
+
+void bind_texture(unsigned int texture)
+{
+  tgl_bind_texture(texture);
 }
 
 //Texture functions

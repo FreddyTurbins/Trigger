@@ -43,6 +43,7 @@ TRAPI void tgl_set_vao_attribute(VertexArrayObject vao, int id_attr, int number_
 TRAPI void tgl_set_uniform_mat4f(int loc, Mat4 mat);
 TRAPI void tgl_set_uniform1iv(int loc, int samples, int* samplers);
 TRAPI void tgl_bind_texture_unit(unsigned int index, unsigned int slot);
+TRAPI void tgl_bind_texture(unsigned int texture);
 
 //General data related functions
 //============================================================
@@ -52,6 +53,8 @@ TRAPI void tgl_bind_texture_unit(unsigned int index, unsigned int slot);
 TRAPI void tgl_clear_screen_buffer(void);
 TRAPI void tgl_set_background(const unsigned char r, const unsigned char g, const unsigned char b, const unsigned char a);
 TRAPI void tgl_draw_triangles(const uint32_t index_count);
+TRAPI void tgl_draw_lines(const uint32_t vertex_count);
+TRAPI void tgl_set_line_thickness(const float thickness);
 
 //Texture related functions
 //============================================================
@@ -151,6 +154,11 @@ void tgl_bind_texture_unit(unsigned int index, unsigned int slot)
   glBindTextureUnit(index, slot);
 }
 
+void tgl_bind_texture(unsigned int texture)
+{
+  glBindTexture(GL_TEXTURE_2D, texture);
+}
+
 //General data methods
 //============================================================
 
@@ -173,6 +181,16 @@ void tgl_set_background(const unsigned char r, const unsigned char g, const unsi
 void tgl_draw_triangles(const uint32_t index_count)
 {
   glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, NULL);
+}
+
+void tgl_draw_lines(const uint32_t vertex_count)
+{
+  glDrawArrays(GL_LINES, 0, vertex_count);
+}
+
+void tgl_set_line_thickness(const float thickness)
+{
+  glLineWidth(thickness);
 }
 
 //Texture

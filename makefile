@@ -22,6 +22,7 @@ linuxexamples: linux
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/disk examples/disk/main.c -Wl,-rpath,./
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/texture examples/texture/main.c -Wl,-rpath,./
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/shader examples/shader/main.c -Wl,-rpath,./
+	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/text examples/text/main.c -Wl,-rpath,./
 
 win32ex: win32
 	@echo COMPILING HELLO TRIANGLE

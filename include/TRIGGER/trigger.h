@@ -112,6 +112,8 @@ TRAPI Mat4 get_render_mat_projection(void);
 //Drawing related functions
 //============================================================
 TRAPI void draw_indexed(const VertexArrayObject vertex_array_object, const unsigned int index_count);
+TRAPI void draw_lines(const VertexArrayObject vertex_array_object, const unsigned int vertex_count);
+TRAPI void set_line_thickness(const float thickness);
 TRAPI void set_background(const Color color);
 //Texture related functions
 //============================================================
@@ -128,6 +130,7 @@ TRAPI int get_shader_location(unsigned int shader, const char* uniform_name);
 TRAPI void set_shader_uniform_mat4(const unsigned int shader, int loc, Mat4 mat);
 TRAPI void set_uniform1iv(int loc, int samples, int* samplers);
 TRAPI void bind_texture_unit(unsigned int index, unsigned int slot);
+TRAPI void bind_texture(unsigned int texture);
 
 //NOT BELONG HERE
 TRAPI void begin_shader(unsigned int shader);
