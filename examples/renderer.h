@@ -68,4 +68,11 @@ TRAPI void draw_text_atlas(const FontAtlas font_atlas, const char* text, const V
 //============================================================
 TRAPI void begin_shader(unsigned int shader);
 TRAPI void end_shader(void);
+
+//Time related fuctions
+//============================================================
+TRAPI double get_deltatime(void);
+TRAPI int get_framerate(void);
+TRAPI double get_time(void);
+TRAPI void set_framerate_cap(int frame_rate);
 #endif

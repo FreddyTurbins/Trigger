@@ -22,16 +22,11 @@ typedef struct TriggerWindow {
   Mat4                  projection_matrix;
 } TriggerWindow;
 
-typedef struct Time {
-  double                last_time;
-  double                delta_time;
-  double                initial_time;
-  double                time_framerate_cap;
-  unsigned long long    frame_counter;
-} Time;
+typedef struct Keyboard {
+  
+} Keyboard;
 
 TriggerWindow trigger_window  = {0};
-Time          time            = {0};
 
 #define COLOR_NUMBER(X)                    ((X).r<<(8*3))+((X).g<<(8*2))+((X).b<<(8*1))+(X).a
 
@@ -52,15 +47,12 @@ void init_window(const char* title, const unsigned short width, const unsigned s
   if ((title != NULL) && (title[0] != 0)) trigger_window.title = title;
   trigger_window.render.width = width;
   trigger_window.render.height = height;
-  trigger_window.v_sync = false;
+  trigger_window.v_sync = true;
   #if defined(PLATFORM_DESKTOP)
   init_opengl();
   current_renderer_api = TEGL;
   Mat4 projection_matrix = create_matrix_ortho(0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f);
   trigger_window.projection_matrix = projection_matrix;
-  time.initial_time = glfwGetTime();
-  time.last_time = time.initial_time;
-  time.frame_counter = 0;
   #endif
 }
 
@@ -93,6 +85,22 @@ void close_window(void)
 Vector2 get_window_size(void)
 {
   return (Vector2){(float)trigger_window.render.width, (float)trigger_window.render.height};
+}
+
+void set_v_sync(bool enabled)
+{
+  switch (current_renderer_api) {
+    case NONE_API: {trigger_log(LOG_DEBUG, "set_v_sync -> Trigger has not api selected"); break;}
+    case TEGL: {opengl_set_v_sync(enabled); break;}
+  }
+  trigger_window.v_sync = enabled;
+}
+
+//Input options related functions
+//============================================================
+bool is_key_pressed(const int key_code)
+{
+  return opengl_is_key_pressed(key_code);
 }
 
 //Drawing functions
@@ -310,37 +318,18 @@ void set_vao_attribute(VertexArrayObject vao, int idAttr, int number_attr, unsig
 }
 
 void gfx_update(void) {
-#if defined(PLATFORM_DESKTOP)
-  opengl_swap_screen_buffer();
-  tgl_clear_screen_buffer();
-  double current_time = glfwGetTime();
-  time.delta_time = current_time - time.last_time;
-  time.frame_counter++;
-#endif
+  #if defined(PLATFORM_DESKTOP)
+    opengl_swap_screen_buffer();
+    tgl_clear_screen_buffer();
+  #endif
 }
 
 void input_polling(void) {
 
 }
 
-//Time related fuctions
-//============================================================
-double get_deltatime(void)
+double get_run_time(void)
 {
-  return time.delta_time;
-}
-
-int get_framerate(void)
-{
-  return (1/time.delta_time)*time.frame_counter;
-}
-
-double get_time(void)
-{
-  return time.last_time - time.initial_time;
-}
-
-void set_framerate_cap(int frame_rate)
-{
-  trigger_log(LOG_WARN, "SetFrameRateCap method is not defined");
+  double time = opengl_get_time();
+  return time;
 }

@@ -38,8 +38,6 @@ int init_opengl(void)
   }
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
-  
-  glfwSwapInterval(0);
   return 0;
 }
 
@@ -59,7 +57,27 @@ void opengl_swap_screen_buffer(void)
   glfwPollEvents();
 }
 
+void opengl_set_v_sync(const bool enabled)
+{
+  if (enabled)
+    glfwSwapInterval(1);
+  else
+    glfwSwapInterval(0);
+}
+
 void opengl_input_polling(void)
 {
 
+}
+
+double opengl_get_time(void)
+{
+  double time = glfwGetTime();
+  return time;
+}
+
+bool opengl_is_key_pressed(const int key_code)
+{
+  int status = glfwGetKey(platform.m_window, key_code);
+  return status ==GLFW_PRESS || status == GLFW_REPEAT;
 }

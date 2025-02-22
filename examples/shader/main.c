@@ -33,9 +33,7 @@ signed main()
     draw_text_atlas(font, buffer, (Vector2){20, 1000}, 4.0f, (Color){255, 255, 255, 255});
     draw_text_atlas(font, "Polifonia", (Vector2){500, 500}, 5.0f, (Color){255, 255, 255, 255});
 
-    input_polling();
-    gfx_update();
-    flush_renderer2d();
+    end_batch();
   }
   close_window();
   return 0;

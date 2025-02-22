@@ -87,8 +87,19 @@ typedef struct DrawStats {
   uint32_t                draw_calls;
 } DrawStats;
 
+typedef struct Time {
+  double                last_time;
+  double                draw_time;
+  double                delta_time;
+  double                update_time;
+  double                initial_time;
+  double                target_framerate_cap;
+  unsigned long long    frame_counter;
+} Time;
+
 static RenderBatchData batch = {0};
 static DrawStats stats = {0};
+static Time time = {0};
 
 static void set_samplers_textures(void);
 static void draw_character(const FontAtlas font_atlas, const char character, const Rectangle data, const Color color);
@@ -368,13 +379,42 @@ void init_renderer2d(void)
     batch.texture_slots[i] = 0;
   }
   batch.texture_slots_index = 1;
+  time.initial_time = get_run_time();
+  time.last_time = time.initial_time;
+  time.frame_counter = 0;
+  set_v_sync(false);
 }
 
 void start_batch(void)
 {
   stats.quad_count = 0;
+  double current_time = get_run_time();
+  time.update_time = current_time - time.last_time;
+  time.last_time = current_time;
 }
 
+void end_batch(void)
+{
+  input_polling();
+  gfx_update();
+  flush_renderer2d();
+  double current_time = get_run_time();
+  time.draw_time = current_time - time.last_time;
+  time.last_time = current_time;
+  time.delta_time = time.update_time + time.draw_time;
+  /*if (time.draw_time < time.target_framerate_cap)
+  {
+    //Do wait_time
+    //wait_time(time.target_framerate_cap - draw_time);
+
+    current_time = get_system_time();
+    double wait_time = current_time - time.last_time;
+    time.last_time = current_time;
+
+    time.delta_time += wait_time;
+  }*/
+  time.frame_counter++;
+}
 
 void flush_quad_renderer2d(void)
 {
@@ -831,4 +871,26 @@ static void draw_character(const FontAtlas font_atlas, const char character, con
   
   batch.text_index_count += 6;
   stats.quad_count++;
+}
+
+//Time related fuctions
+//============================================================
+double get_deltatime(void)
+{
+  return time.delta_time;
+}
+
+int get_framerate(void)
+{
+  return (1/time.delta_time);
+}
+
+double get_time(void)
+{
+  return time.initial_time - time.last_time;
+}
+
+void set_framerate_cap(int frame_rate)
+{
+  time.target_framerate_cap = 1.0/(double)frame_rate;
 }
