@@ -6,7 +6,7 @@
 
 signed main()
 {
-  init_window("Hello Rectangle", 1920, 1080);
+  init_window("Shader example", 1920, 1080);
   init_renderer2d();
   unsigned int shader = load_shader("shader.vert", "shader.frag");
   Texture texture = load_texture("./test.png");

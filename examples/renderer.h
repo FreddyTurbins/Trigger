@@ -41,7 +41,9 @@ TRAPI FontAtlas create_font_atlas(const char* filepath, Vector2 cells);
 //2D Renderer related functions
 //============================================================
 TRAPI void init_renderer2d(void);
+TRAPI void close_renderer2d(void);
 TRAPI void start_batch(void);
+TRAPI void end_batch(void);
 TRAPI void flush_renderer2d(void);
 TRAPI void flush_quad_renderer2d(void);
 TRAPI void flush_disk_renderer2d(void);

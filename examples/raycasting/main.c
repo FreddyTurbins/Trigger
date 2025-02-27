@@ -36,7 +36,8 @@ void render_map(void)
 
 signed main()
 {
-  init_window("Hello Rectangle", 1920, 1080);
+  init_window("Raycasting example", 1920, 1080);
+  set_window_icon("./raycast_icon.png");
   init_renderer2d();
   FontAtlas font = create_font_atlas("./font.bmp", (Vector2){16.0f, 4.0f});
   char buffer[32];
@@ -52,34 +53,42 @@ signed main()
   while(!window_should_close()) {
     start_batch();
     set_background(DARK_GRAY);
-    
-    if (is_key_pressed(TRIGGER_KEY_LEFT)) {
+    if (is_mouse_button_pressed(TRIGGER_MOUSE_BUTTON_LEFT)) {
+      set_window_size((Vector2){1080, 720});
+    }
+    if (is_mouse_button_pressed(TRIGGER_MOUSE_BUTTON_RIGHT)) {
+      set_window_size((Vector2){1920, 1080});
+    }
+    if (is_key_pressed(TRIGGER_KEY_F)) {
+      toggle_full_screen();
+    }
+    if (is_key_down(TRIGGER_KEY_LEFT)) {
       angle_view += 55.5f*get_deltatime();
     }
-    if (is_key_pressed(TRIGGER_KEY_RIGHT)) {
+    if (is_key_down(TRIGGER_KEY_RIGHT)) {
       angle_view -= 55.5f*get_deltatime();
     } 
-    if (is_key_pressed(TRIGGER_KEY_A)) {
+    if (is_key_down(TRIGGER_KEY_A)) {
       player_position.x += 45.5f*get_deltatime()*cos((angle_view+90)*PI/180);
       player_position.y += 45.5f*get_deltatime()*sin((angle_view+90)*PI/180);
     }
-    if (is_key_pressed(TRIGGER_KEY_D)) {
+    if (is_key_down(TRIGGER_KEY_D)) {
       player_position.x += 45.5f*get_deltatime()*cos((angle_view-90)*PI/180);
       player_position.y += 45.5f*get_deltatime()*sin((angle_view-90)*PI/180);
     }
-    if (is_key_pressed(TRIGGER_KEY_W)) {
+    if (is_key_down(TRIGGER_KEY_W)) {
       player_position.x += 45.5f*get_deltatime()*cos(angle_view*PI/180);
       player_position.y += 45.5f*get_deltatime()*sin(angle_view*PI/180);
     }
-    if (is_key_pressed(TRIGGER_KEY_S)) {
+    if (is_key_down(TRIGGER_KEY_S)) {
       //BURRITO'S RULE +180 COFUNCTION IS NOT CHANGED BUT WITH TODOS SIN TACOS U KNOW IS NEGATIVE
       player_position.x += 45.5f*get_deltatime()*-cos((angle_view)*PI/180);
       player_position.y += 45.5f*get_deltatime()*-sin((angle_view)*PI/180);
     }
-    if (is_key_pressed(TRIGGER_KEY_P)) {
+    if (is_key_down(TRIGGER_KEY_P)) {
       fov += 50.0f*get_deltatime();
     }
-    if (is_key_pressed(TRIGGER_KEY_O)) {
+    if (is_key_down(TRIGGER_KEY_O)) {
       fov -= 50.0f*get_deltatime();
     }
 
@@ -176,7 +185,8 @@ signed main()
     draw_rectangle_thickness((Rectangle){1740, 1042, 310, 60}, 6.0f, (Color){255, 255, 255, 255});
     draw_text_atlas(font, buffer, (Vector2){1600, 1000}, 4.0f, (Color){255, 255, 255, 255});
     end_batch();
-  }
+  } 
+  close_renderer2d();
   close_window();
   return 0;
 }

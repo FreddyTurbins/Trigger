@@ -1,5 +1,4 @@
 #include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include "TRIGGER/trigger.h"
 #include "renderer.h"
@@ -9,10 +8,10 @@
 #define RENDERER_MAX_INDICES                              RENDERER_MAX_QUADS*6
 #define RENDERER_MAX_TEXTURES                             32
 
-#define RED(X)                                        ((X)>>(8*3)&0xFF)
-#define GREEN(X)                                      ((X)>>(8*2)&0xFF)
-#define BLUE(X)                                       ((X)>>(8*1)&0xFF)
-#define ALPHA(X)                                      ((X)>>(8*0)&0xFF)
+#define RED(X)                                            ((X)>>(8*3)&0xFF)
+#define GREEN(X)                                          ((X)>>(8*2)&0xFF)
+#define BLUE(X)                                           ((X)>>(8*1)&0xFF)
+#define ALPHA(X)                                          ((X)>>(8*0)&0xFF)
 
 typedef struct QuadVertex {
   Vector3 position;
@@ -41,42 +40,40 @@ typedef struct LineVertex {
 } LineVertex;
 
 typedef struct RenderBatchData {
-  //unsigned int            quadVShader;
-  //unsigned int            quadFShader;
-  unsigned int            quad_shader;
-  unsigned int            current_shader;
+  uint32_t                quad_shader;
+  uint32_t                current_shader;
 
-  unsigned int*           texture_slots;
-  unsigned int            texture_slots_index;
-  unsigned int            default_texture;
+  uint32_t*               texture_slots;
+  uint32_t                texture_slots_index;
+  uint32_t                default_texture;
   IndexBuffer             index_buffer;
 
   VertexArrayObject       quad_vertex_array;
   VertexBuffer            quad_vertex_buffer;
-  unsigned int            quad_index_count;
+  uint32_t                quad_index_count;
   QuadVertex*             quad_buffer_ptr;
   QuadVertex*             quad_buffer;
 
   VertexArrayObject       disk_vertex_array;
   VertexBuffer            disk_vertex_buffer;
-  unsigned int            disk_shader;
-  unsigned int            disk_index_count;
+  uint32_t                disk_shader;
+  uint32_t                disk_index_count;
   DiskVertex*             disk_buffer_ptr;
   DiskVertex*             disk_buffer;
   
   VertexArrayObject       text_vertex_array;
   VertexBuffer            text_vertex_buffer;
-  unsigned int            text_shader;
-  unsigned int            text_index_count;
+  uint32_t                text_shader;
+  uint32_t                text_index_count;
   TextVertex*             text_buffer_ptr;
   TextVertex*             text_buffer;
-  unsigned int            text_texture;
+  uint32_t                text_texture;
 
   
   VertexArrayObject       line_vertex_array;
   VertexBuffer            line_vertex_buffer;
-  unsigned int            line_shader;
-  unsigned int            line_vertex_count;
+  uint32_t                line_shader;
+  uint32_t                line_vertex_count;
   LineVertex*             line_buffer_ptr;
   LineVertex*             line_buffer;
   float                   line_thickness;
@@ -94,7 +91,7 @@ typedef struct Time {
   double                  update_time;
   double                  initial_time;
   double                  target_framerate_cap;
-  unsigned long long      frame_counter;
+  uint64_t                frame_counter;
 } Time;
 
 static RenderBatchData batch = {0};
@@ -149,7 +146,7 @@ FontAtlas create_font_atlas(const char* filepath, Vector2 cells)
 void init_renderer2d(void)
 {
   //Redfine max vertices to all buffers
-  batch.texture_slots = (unsigned int*)calloc(RENDERER_MAX_TEXTURES, sizeof(unsigned int));
+  batch.texture_slots = (uint32_t*)calloc(RENDERER_MAX_TEXTURES, sizeof(uint32_t));
   batch.quad_buffer = (QuadVertex*)calloc(RENDERER_MAX_VERTICES, sizeof(struct QuadVertex));
   batch.disk_buffer = (DiskVertex*)calloc(RENDERER_MAX_VERTICES, sizeof(struct DiskVertex));
   batch.text_buffer = (TextVertex*)calloc(RENDERER_MAX_VERTICES, sizeof(struct TextVertex));
@@ -211,7 +208,7 @@ void init_renderer2d(void)
     trigger_log(LOG_WARN, "SHADER -> [ID %d] Default quad shader failed loading", batch.quad_shader);
   }
   
-  unsigned int indices[RENDERER_MAX_INDICES] = {0};
+  uint32_t indices[RENDERER_MAX_INDICES] = {0};
   for (long k = 0, offset = 0; k < RENDERER_MAX_INDICES; k+=6, offset+=4) {
     indices[k + 0] = 0 + offset;
     indices[k + 1] = 1 + offset;
@@ -370,12 +367,12 @@ void init_renderer2d(void)
     trigger_log(LOG_WARN, "SHADER -> [ID %d] Default line shader failed loading", batch.line_shader);
   }
 
-  unsigned char pixels[4] = { 255, 255, 255, 255 };
+  uint8_t pixels[4] = {255, 255, 255, 255};
   //4 should be a define, nr_channel 4 is not obvius that is RGBA
   batch.default_texture = create_texture(pixels, 1, 1, 4);
 
   batch.texture_slots[0] = batch.default_texture;
-  for (int i = 1; i < RENDERER_MAX_TEXTURES; i++) {
+  for (int32_t i = 1; i < RENDERER_MAX_TEXTURES; i++) {
     batch.texture_slots[i] = 0;
   }
   batch.texture_slots_index = 1;
@@ -383,6 +380,15 @@ void init_renderer2d(void)
   time.last_time = time.initial_time;
   time.frame_counter = 0;
   set_v_sync(false);
+}
+
+void close_renderer2d(void)
+{
+  free(batch.texture_slots);
+  free(batch.quad_buffer);
+  free(batch.disk_buffer);
+  free(batch.text_buffer);
+  free(batch.line_buffer);
 }
 
 void start_batch(void)
@@ -428,7 +434,7 @@ void flush_quad_renderer2d(void)
 
     bind_shader(batch.current_shader);
     set_samplers_textures();
-    int loc = get_shader_location(batch.current_shader, "projMatrix");
+    int32_t loc = get_shader_location(batch.current_shader, "projMatrix");
     set_shader_uniform_mat4(batch.current_shader, loc, get_render_mat_projection());
 
     draw_indexed(batch.quad_vertex_array, batch.quad_index_count);
@@ -447,7 +453,7 @@ void flush_disk_renderer2d(void)
     set_vertex_buffer_data(batch.disk_vertex_buffer, batch.disk_buffer, size);
 
     bind_shader(batch.disk_shader);
-    int loc = get_shader_location(batch.disk_shader, "projMatrix");
+    int32_t loc = get_shader_location(batch.disk_shader, "projMatrix");
     set_shader_uniform_mat4(batch.disk_shader, loc, get_render_mat_projection());
 
     draw_indexed(batch.disk_vertex_array, batch.disk_index_count);
@@ -466,7 +472,7 @@ void flush_text_renderer2d(void)
       
     bind_texture(batch.text_texture);
     bind_shader(batch.text_shader);
-    int loc = get_shader_location(batch.text_shader, "projMatrix");
+    int32_t loc = get_shader_location(batch.text_shader, "projMatrix");
     set_shader_uniform_mat4(batch.text_shader, loc, get_render_mat_projection());
 
     draw_indexed(batch.text_vertex_array, batch.text_index_count);
@@ -485,7 +491,7 @@ void flush_line_renderer2d(void)
     set_vertex_buffer_data(batch.line_vertex_buffer, batch.line_buffer, size);
       
     bind_shader(batch.line_shader);
-    int loc = get_shader_location(batch.line_shader, "projMatrix");
+    int32_t loc = get_shader_location(batch.line_shader, "projMatrix");
     set_shader_uniform_mat4(batch.line_shader, loc, get_render_mat_projection());
 
     draw_lines(batch.line_vertex_array, batch.line_vertex_count);
@@ -509,7 +515,7 @@ void flush_renderer2d(void)
 void draw_line(const Vector2 v1, const Vector2 v2, const Color color)
 {
   //if (batch.line_vertex_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
-  unsigned long parsed_color = COLOR_NUMBER(color);
+  uint32_t parsed_color = COLOR_NUMBER(color);
   const Vector4 color4f = {
     (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
   };
@@ -539,7 +545,7 @@ void draw_line_thickness(const Vector2 v1, const Vector2 v2, const float thickne
 void draw_triangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color)
 {
   if (batch.quad_index_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
-  unsigned long parsed_color = COLOR_NUMBER(color);
+  uint32_t parsed_color = COLOR_NUMBER(color);
   const Vector4 color4f = {
     (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
   };
@@ -573,7 +579,7 @@ void draw_quad(const Rectangle data, const Color color)
 {
   if (batch.quad_index_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
   
-  unsigned long parsed_color = COLOR_NUMBER(color);
+  uint32_t parsed_color = COLOR_NUMBER(color);
   const Vector4 color4f = {
     (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
   };
@@ -647,7 +653,7 @@ void draw_disk_thickness(const Vector2 center, const float radius, float thickne
     { 1.0f, 1.0f},
     {-1.0f, 1.0f}
   };
-  unsigned long parsed_color = COLOR_NUMBER(color);
+  uint32_t parsed_color = COLOR_NUMBER(color);
   const Vector4 color4f = {
     (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
   };
@@ -674,7 +680,7 @@ void draw_texture(const Texture texture, const Vector2 pos, const Color color)
 void draw_texture_extended(const Texture texture, const Rectangle data, const float scale, const Color color)
 {
   if (batch.quad_index_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
-  unsigned long parsed_color = COLOR_NUMBER(color);
+  uint32_t parsed_color = COLOR_NUMBER(color);
   const Vector4 color4f = {
     (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
   };
@@ -728,7 +734,7 @@ void draw_sub_texture(const SubTexture sub_texture, const Vector2 pos, const Col
 void draw_sub_texture_extended(const SubTexture sub_texture, const Rectangle data, const float scale, const Color color)
 {
   if (batch.quad_index_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
-  unsigned long parsed_color = COLOR_NUMBER(color);
+  uint32_t parsed_color = COLOR_NUMBER(color);
   const Vector4 color4f = {
     (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
   };
@@ -746,6 +752,7 @@ void draw_sub_texture_extended(const SubTexture sub_texture, const Rectangle dat
   };
   
   float texture_index = 0.0f;                            //DEFAULT
+  //So, how texture_slots is unsigned, uint32_t get rid of a warning
   for (uint32_t k = 1; k < batch.texture_slots_index; k++)
   {
     if (batch.texture_slots[k] == sub_texture.id) {
@@ -762,7 +769,7 @@ void draw_sub_texture_extended(const SubTexture sub_texture, const Rectangle dat
     batch.texture_slots_index++;
   }
 
-  for (int k = 0; k < 4; k++) {
+  for (int32_t k = 0; k < 4; k++) {
     batch.quad_buffer_ptr->position  = vertex_position[k];
     batch.quad_buffer_ptr->color     = color4f;
     batch.quad_buffer_ptr->tex_coord = texture_coord[k];
@@ -778,7 +785,7 @@ void draw_text_atlas(const FontAtlas font_atlas, const char* text, const Vector2
 {
   if (batch.text_index_count >= RENDERER_MAX_INDICES) flush_text_renderer2d();
   if (text == NULL) return;
-  unsigned int width = font_atlas.cell.width, height = font_atlas.cell.height;
+  uint32_t width = font_atlas.cell.width, height = font_atlas.cell.height;
   
 
   if (batch.text_texture != 0.0f && batch.text_texture != font_atlas.cell.id) flush_text_renderer2d();
@@ -803,7 +810,7 @@ void draw_text_atlas(const FontAtlas font_atlas, const char* text, const Vector2
   }
 }
 
-void begin_shader(unsigned int shader)
+void begin_shader(uint32_t shader)
 {
   flush_quad_renderer2d();
   batch.current_shader = shader;
@@ -818,16 +825,16 @@ void end_shader(void)
 //Static methods
 static void set_samplers_textures(void)
 {
-  int loc = get_shader_location(batch.current_shader, "textures");
-  int samplers[32];
-  for(int i = 0; i < 32; i++)
+  int32_t loc = get_shader_location(batch.current_shader, "textures");
+  int32_t samplers[32];
+  for(int32_t i = 0; i < 32; i++)
     samplers[i] = i;
   set_uniform1iv(loc, 32, samplers);
 }
 
 static void draw_character(const FontAtlas font_atlas, const char character, const Rectangle data, const Color color)
 {
-  int index = 0;
+  int32_t index = 0;
   if (character >= 'a' && character <= 'z') {
     index = character-'a';
   } else if (character >= 'A' && character <= 'Z') {
@@ -846,7 +853,7 @@ static void draw_character(const FontAtlas font_atlas, const char character, con
   int stride_y = index/16;
   
   float cell_width = font_atlas.cell.max[0], cell_height = font_atlas.cell.max[1];
-  unsigned long parsed_color = COLOR_NUMBER(color);
+  uint32_t parsed_color = COLOR_NUMBER(color);
   const Vector4 color4f = {
     (float)RED(parsed_color)/255, (float)GREEN(parsed_color)/255, (float)BLUE(parsed_color)/255, (float)ALPHA(parsed_color)/255
   };

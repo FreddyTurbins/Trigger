@@ -3,30 +3,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MAX_KEYBOARD_KEYS_CODE            512
+
 typedef enum {
   NONE_API = 0,
   TEGL
 } RendererApi;
+
 static RendererApi current_renderer_api = NONE_API;
 
-typedef struct {unsigned short width; unsigned short height;} Resolution;
+typedef struct {uint16_t width; uint16_t height;} Resolution;
+typedef struct {int32_t x; int32_t y;} WindowPosition;
 
 typedef struct TriggerWindow {
   const char*           title;
   bool                  v_sync;
-  bool                  fullscreen;
+  bool                  full_screen;
   bool                  should_close;
   Resolution            screen;
   Resolution            render;
-  
+  WindowPosition        position;
+  WindowPosition        previous_position;
+
   Mat4                  projection_matrix;
 } TriggerWindow;
 
 typedef struct Keyboard {
-  
+  uint8_t               current_key_state[MAX_KEYBOARD_KEYS_CODE];
+  uint8_t               previous_key_state[MAX_KEYBOARD_KEYS_CODE];
 } Keyboard;
 
-TriggerWindow trigger_window  = {0};
+TriggerWindow trigger_window = {0};
+Keyboard keyboard = {0};
 
 #define COLOR_NUMBER(X)                    ((X).r<<(8*3))+((X).g<<(8*2))+((X).b<<(8*1))+(X).a
 
@@ -42,7 +50,7 @@ TriggerWindow trigger_window  = {0};
 
 //Window options functions
 //============================================================
-void init_window(const char* title, const unsigned short width, const unsigned short height)
+void init_window(const char* title, const uint16_t width, const uint16_t height)
 {
   if ((title != NULL) && (title[0] != 0)) trigger_window.title = title;
   trigger_window.render.width = width;
@@ -82,9 +90,28 @@ void close_window(void)
   #endif
 }
 
+void set_window_icon(const char* filepath)
+{
+  Image image = {0};
+  image.data = stbi_load(filepath, &image.width, &image.height, 0, 4);
+  opengl_set_window_icon(image);
+}
+
 Vector2 get_window_size(void)
 {
   return (Vector2){(float)trigger_window.render.width, (float)trigger_window.render.height};
+}
+
+void set_window_size(Vector2 window_size)
+{
+  opengl_set_viewport(window_size.x, window_size.y);
+  trigger_window.render.width = window_size.x;
+  trigger_window.render.height = window_size.y;
+}
+
+void toggle_full_screen(void)
+{
+  opengl_toggle_full_screen();
 }
 
 void set_v_sync(bool enabled)
@@ -98,20 +125,38 @@ void set_v_sync(bool enabled)
 
 //Input options related functions
 //============================================================
-bool is_key_pressed(const int key_code)
+bool is_key_pressed(const int32_t key_code)
 {
-  return opengl_is_key_pressed(key_code);
+  return keyboard.current_key_state[key_code] == 1 && keyboard.previous_key_state[key_code] == 0;
+}
+
+bool is_key_down(const int32_t key_code)
+{
+  return keyboard.current_key_state[key_code];
+}
+
+bool is_mouse_button_pressed(const int32_t button)
+{
+  return opengl_is_mouse_button_pressed(button);
+}
+
+Vector2 get_mouse_position(void)
+{
+  return (Vector2) {
+    .x = opengl_get_mouse_x_position(),
+    .y = opengl_get_mouse_y_position()
+  };
 }
 
 //Drawing functions
 //============================================================
-void draw_indexed(const VertexArrayObject vertex_array_object, const unsigned int index_count)
+void draw_indexed(const VertexArrayObject vertex_array_object, const uint32_t index_count)
 {
   tgl_bind_vao(vertex_array_object);
   tgl_draw_triangles(index_count);
 }
 
-void draw_lines(const VertexArrayObject vertex_array_object, const unsigned int vertex_count)
+void draw_lines(const VertexArrayObject vertex_array_object, const uint32_t vertex_count)
 {
   tgl_bind_vao(vertex_array_object);
   tgl_draw_lines(vertex_count);
@@ -140,17 +185,17 @@ Mat4 get_render_mat_projection(void)
   return trigger_window.projection_matrix;
 }
 
-void set_uniform1iv(int loc, int samples, int* samplers)
+void set_uniform1iv(int32_t loc, int32_t samples, int32_t* samplers)
 {
   tgl_set_uniform1iv(loc, samples, samplers);
 }
 
-void bind_texture_unit(unsigned int index, unsigned int slot)
+void bind_texture_unit(uint32_t index, uint32_t slot)
 {
   tgl_bind_texture_unit(index, slot);
 }
 
-void bind_texture(unsigned int texture)
+void bind_texture(uint32_t texture)
 {
   tgl_bind_texture(texture);
 }
@@ -187,7 +232,7 @@ Texture load_texture(const char* filepath)
   return texture;
 }
 
-unsigned int create_texture(const unsigned char* data, const int width, const int height, int nr_channel)
+uint32_t create_texture(const uint8_t* data, const int32_t width, const int32_t height, int32_t nr_channel)
 {
   if (nr_channel == 1) nr_channel = GL_LUMINANCE;
   else if (nr_channel == 2) nr_channel = GL_LUMINANCE_ALPHA;
@@ -200,8 +245,8 @@ Image read_image_file(const char* filepath)
 {
   Image img = {0};
   
-  unsigned int data_count = 0;
-  unsigned char* img_data = (unsigned char*)read_text_file(filepath, &data_count);
+  uint32_t data_count = 0;
+  uint8_t* img_data = (uint8_t*)read_text_file(filepath, &data_count);
 
   if (img_data == NULL) {
     trigger_log(LOG_WARN, "IMAGE -> [%s] Fail loading data from file", filepath);
@@ -227,7 +272,7 @@ Image read_image_file(const char* filepath)
 
 //Shader functions
 //============================================================
-unsigned int load_shader(const char* v_shader_path, const char* f_shader_path)
+uint32_t load_shader(const char* v_shader_path, const char* f_shader_path)
 {
   if (v_shader_path == NULL || v_shader_path[0] == '\0') {
     trigger_log(LOG_WARN, "SHADER -> [%s] Invalid path", v_shader_path);
@@ -238,8 +283,8 @@ unsigned int load_shader(const char* v_shader_path, const char* f_shader_path)
     return 0;
   }
 
-  int program = 0;
-  unsigned int len = 0;
+  int32_t program = 0;
+  uint32_t len = 0;
 
   char* v_shader_code = read_text_file(v_shader_path, &len);
 
@@ -252,30 +297,30 @@ unsigned int load_shader(const char* v_shader_path, const char* f_shader_path)
   return program;
 }
 
-unsigned int compile_shader(const char* v_shader_code, const char* f_shader_code)
+uint32_t compile_shader(const char* v_shader_code, const char* f_shader_code)
 {
   uint32_t v_shader = tgl_compile_shader(v_shader_code, TRIGGER_VERTEX_SHADER);
   uint32_t f_shader = tgl_compile_shader(f_shader_code, TRIGGER_FRAGMENT_SHADER);
   return tgl_create_shader_program(v_shader, f_shader);
 }
 
-void bind_shader(const unsigned int shader)
+void bind_shader(const uint32_t shader)
 {
   tgl_bind_shader(shader);
 }
 
-int get_shader_location(unsigned int shader, const char* uniform_name)
+int get_shader_location(uint32_t shader, const char* uniform_name)
 {
   return tgl_get_shader_location(shader, uniform_name);
 }
 
-void set_shader_uniform_mat4(const unsigned int shader, int loc, Mat4 mat)
+void set_shader_uniform_mat4(const uint32_t shader, int loc, Mat4 mat)
 {
   tgl_bind_shader(shader);
   tgl_set_uniform_mat4f(loc, mat);
 }
 
-VertexBuffer create_vertex_buffer(const unsigned long long size)
+VertexBuffer create_vertex_buffer(const uint64_t size)
 {
   VertexBuffer vertex_buffer = tgl_create_vertex_buffer(size);
   return vertex_buffer;
@@ -286,12 +331,12 @@ void bind_vertex_buffer(const VertexBuffer vertex_buffer)
   tgl_bind_vertex_buffer(vertex_buffer);
 }
 
-void set_vertex_buffer_data(const VertexBuffer vertex_buffer, const void* data, unsigned int size)
+void set_vertex_buffer_data(const VertexBuffer vertex_buffer, const void* data, uint32_t size)
 {
   tgl_vertex_buffer_data(vertex_buffer, data, size);
 }
 
-IndexBuffer create_index_buffer(const unsigned int* indices, const unsigned int count_indices)
+IndexBuffer create_index_buffer(const uint32_t* indices, const uint32_t count_indices)
 {
   return tgl_create_index_buffer(indices, count_indices);
 }
@@ -312,7 +357,7 @@ void bind_vao(VertexArrayObject vertex_array_object)
   tgl_bind_vao(vertex_array_object);
 }
 
-void set_vao_attribute(VertexArrayObject vao, int idAttr, int number_attr, unsigned long long size, const void* offset)
+void set_vao_attribute(VertexArrayObject vao, int32_t idAttr, int32_t number_attr, uint64_t size, const void* offset)
 {
   tgl_set_vao_attribute(vao, idAttr, number_attr, size, offset);
 }
@@ -325,7 +370,11 @@ void gfx_update(void) {
 }
 
 void input_polling(void) {
-
+  for (int i = 0; i < MAX_KEYBOARD_KEYS_CODE; i++)
+  {
+    keyboard.previous_key_state[i] = keyboard.current_key_state[i];
+    //keyboard.key_repeat_in_frame[i] = 0;
+  }
 }
 
 double get_run_time(void)
@@ -333,3 +382,11 @@ double get_run_time(void)
   double time = opengl_get_time();
   return time;
 }
+
+//Static functions
+//============================================================
+/*
+static void record_input_event(void)
+{
+}
+*/

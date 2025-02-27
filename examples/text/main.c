@@ -6,7 +6,7 @@
 
 signed main()
 {
-  init_window("Hello Texture", 1920, 1080);
+  init_window("Text example", 1920, 1080);
   init_renderer2d();
   FontAtlas texture = create_font_atlas("./font.bmp", (Vector2){16.0f, 4.0f});
   Texture texture2 = load_texture("./test.png");
