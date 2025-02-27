@@ -55,15 +55,15 @@ TRAPI void flush_line_renderer2d(void);
 TRAPI void draw_line(const Vector2 v1, const Vector2 v2, const Color color);
 TRAPI void draw_line_thickness(const Vector2 v1, const Vector2 v2, const float thickness, const Color color);
 TRAPI void draw_triangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const Color color);
-TRAPI void draw_quad(const Rectangle data, const Color color);
-TRAPI void draw_rectangle(const Rectangle data, const Color color);
-TRAPI void draw_rectangle_thickness(const Rectangle data, const float thickness, const Color color);
+TRAPI void draw_quad(const Rect data, const Color color);
+TRAPI void draw_rectangle(const Rect data, const Color color);
+TRAPI void draw_rectangle_thickness(const Rect data, const float thickness, const Color color);
 TRAPI void draw_disk(const Vector2 center, const float radius, const Color color);
 TRAPI void draw_disk_thickness(const Vector2 center, const float radius, float thickness, const Color color);
 TRAPI void draw_texture(const Texture texture, const Vector2 pos, const Color color);
-TRAPI void draw_texture_extended(const Texture texture, const Rectangle data, const float scale, const Color color);
+TRAPI void draw_texture_extended(const Texture texture, const Rect data, const float scale, const Color color);
 TRAPI void draw_sub_texture(const SubTexture sub_texture, const Vector2 pos, const Color color);
-TRAPI void draw_sub_texture_extended(const SubTexture sub_texture, const Rectangle data, const float scale, const Color color);
+TRAPI void draw_sub_texture_extended(const SubTexture sub_texture, const Rect data, const float scale, const Color color);
 TRAPI void draw_text_atlas(const FontAtlas font_atlas, const char* text, const Vector2 pos, const float scale, const Color color);
 
 //Shader mode functions

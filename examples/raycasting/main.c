@@ -29,7 +29,7 @@ void render_map(void)
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
       if (map[i * 8 + j])
-        draw_quad((Rectangle){1 + 25 * j, 1059 - 25 * i, 24, 24}, (Color){255, 255, 255, 255});
+        draw_quad((Rect){1 + 25 * j, 1059 - 25 * i, 24, 24}, (Color){255, 255, 255, 255});
     }
   }
 }
@@ -180,9 +180,9 @@ signed main()
       draw_line_thickness(player_position, rays_position[i], 1.0f, HAKEN);
     }
     render_map();
-    draw_quad((Rectangle){player_position.x - 7.5, player_position.y - 7.5, 15, 15}, HAKEN);
+    draw_quad((Rect){player_position.x - 7.5, player_position.y - 7.5, 15, 15}, HAKEN);
     snprintf(buffer, 32, "FPS: %d", get_framerate());
-    draw_rectangle_thickness((Rectangle){1740, 1042, 310, 60}, 6.0f, (Color){255, 255, 255, 255});
+    draw_rectangle_thickness((Rect){1740, 1042, 310, 60}, 6.0f, (Color){255, 255, 255, 255});
     draw_text_atlas(font, buffer, (Vector2){1600, 1000}, 4.0f, (Color){255, 255, 255, 255});
     end_batch();
   } 

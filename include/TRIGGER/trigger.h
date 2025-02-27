@@ -213,12 +213,12 @@ typedef struct Vector4 {
   float         w;
 } Vector4;
 
-typedef struct Rectangle {
+typedef struct Rect {
   float         x;
   float         y;
   float         width;
   float         height;
-} Rectangle;
+} Rect;
 
 typedef struct Mat4 {
   float m0, m1, m2, m3;

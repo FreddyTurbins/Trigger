@@ -29,7 +29,7 @@ signed main()
     draw_texture(texture2, (Vector2){1400, 300}, WHITE);
     draw_disk((Vector2){1700, 800}, 300, (Color){205, 25, 25, 255});
     snprintf(buffer, 32, "FPS: %d", get_framerate());
-    draw_rectangle_thickness((Rectangle){162, 1042, 310, 60}, 6.0f, WHITE);
+    draw_rectangle_thickness((Rect){162, 1042, 310, 60}, 6.0f, WHITE);
     draw_text_atlas(font, buffer, (Vector2){20, 1000}, 4.0f, WHITE);
     draw_text_atlas(font, "Polifonia", (Vector2){500, 500}, 5.0f, WHITE);
 

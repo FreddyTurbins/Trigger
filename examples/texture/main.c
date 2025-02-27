@@ -17,7 +17,7 @@ signed main()
     set_background(DARK_GRAY);
     
     draw_texture(texture, (Vector2){300, 300}, (Color){255, 255, 255, 255});
-    draw_sub_texture_extended(sub_texture, (Rectangle){1200, 300, sub_texture.width, sub_texture.height}, 10.0f, (Color){255, 255, 255, 255});
+    draw_sub_texture_extended(sub_texture, (Rect){1200, 300, sub_texture.width, sub_texture.height}, 10.0f, (Color){255, 255, 255, 255});
     
     input_polling();
     gfx_update();

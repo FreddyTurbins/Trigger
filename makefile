@@ -30,4 +30,4 @@ win32ex: win32
 	@$(CCWIN32) $(cflags) examples/hellotriangle/main.c -o ./build/hellotriangle.exe -L./build/ -l:libtrigger.dll -static
 	@$(CCWIN32) $(cflags) examples/rectangle/main.c -o ./build/rectangle.exe -L./build/ -l:libtrigger.dll -static
 	@$(CCWIN32) $(cflags) examples/texture/main.c -o ./build/texture.exe -L./build/ -l:libtrigger.dll -static
-	@$(CCWIN32) $(cflags) examples/raycasting/main.c -o ./build/raycasting.exe -L./build/ -l:libtrigger.dll -static -lm
+	@$(CCWIN32) $(cflags) examples/raycasting/main.c -o ./build/raycasting.exe -L./build/ -l:libtrigger.dll -static -lm -mwindows

@@ -99,7 +99,7 @@ static DrawStats stats = {0};
 static Time time = {0};
 
 static void set_samplers_textures(void);
-static void draw_character(const FontAtlas font_atlas, const char character, const Rectangle data, const Color color);
+static void draw_character(const FontAtlas font_atlas, const char character, const Rect data, const Color color);
 
 #define COLOR_NUMBER(X)                    ((X).r<<(8*3))+((X).g<<(8*2))+((X).b<<(8*1))+(X).a
 
@@ -575,7 +575,7 @@ void draw_triangle(const Vector2 v1, const Vector2 v2, const Vector2 v3, const C
   stats.quad_count++;
 }
 
-void draw_quad(const Rectangle data, const Color color)
+void draw_quad(const Rect data, const Color color)
 {
   if (batch.quad_index_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
   
@@ -610,7 +610,7 @@ void draw_quad(const Rectangle data, const Color color)
 }
 
 //The center is the point
-void draw_rectangle(const Rectangle data, const Color color)
+void draw_rectangle(const Rect data, const Color color)
 {
   Vector2 p0 = {data.x - data.width * 0.5f, data.y - data.height * 0.5f};
   Vector2 p1 = {data.x + data.width * 0.5f, data.y - data.height * 0.5f};
@@ -623,7 +623,7 @@ void draw_rectangle(const Rectangle data, const Color color)
   draw_line(p3, p0, color);
 }
 
-void draw_rectangle_thickness(const Rectangle data, const float thickness, const Color color)
+void draw_rectangle_thickness(const Rect data, const float thickness, const Color color)
 {
   if (thickness <= 0.0f) return;
   if (batch.line_thickness != thickness) flush_line_renderer2d();
@@ -674,10 +674,10 @@ void draw_disk_thickness(const Vector2 center, const float radius, float thickne
 
 void draw_texture(const Texture texture, const Vector2 pos, const Color color)
 {
-  draw_texture_extended(texture, (Rectangle){pos.x, pos.y, texture.width, texture.height}, 1.0, color);  
+  draw_texture_extended(texture, (Rect){pos.x, pos.y, texture.width, texture.height}, 1.0, color);  
 }
 
-void draw_texture_extended(const Texture texture, const Rectangle data, const float scale, const Color color)
+void draw_texture_extended(const Texture texture, const Rect data, const float scale, const Color color)
 {
   if (batch.quad_index_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
   uint32_t parsed_color = COLOR_NUMBER(color);
@@ -728,10 +728,10 @@ void draw_texture_extended(const Texture texture, const Rectangle data, const fl
 
 void draw_sub_texture(const SubTexture sub_texture, const Vector2 pos, const Color color)
 {
-  draw_sub_texture_extended(sub_texture, (Rectangle){pos.x, pos.y, sub_texture.width, sub_texture.height}, 1.0, color); 
+  draw_sub_texture_extended(sub_texture, (Rect){pos.x, pos.y, sub_texture.width, sub_texture.height}, 1.0, color); 
 }
 
-void draw_sub_texture_extended(const SubTexture sub_texture, const Rectangle data, const float scale, const Color color)
+void draw_sub_texture_extended(const SubTexture sub_texture, const Rect data, const float scale, const Color color)
 {
   if (batch.quad_index_count >= RENDERER_MAX_INDICES) flush_quad_renderer2d();
   uint32_t parsed_color = COLOR_NUMBER(color);
@@ -800,7 +800,7 @@ void draw_text_atlas(const FontAtlas font_atlas, const char* text, const Vector2
     }
 
     draw_character(font_atlas, *text, 
-      (Rectangle){pos.x + character_count * width * scale/2, pos.y,
+      (Rect){pos.x + character_count * width * scale/2, pos.y,
       width * scale, height * scale}, color);
     
     if (*text == 'l' || *text == 'i') character_count -= 0.5;
@@ -832,7 +832,7 @@ static void set_samplers_textures(void)
   set_uniform1iv(loc, 32, samplers);
 }
 
-static void draw_character(const FontAtlas font_atlas, const char character, const Rectangle data, const Color color)
+static void draw_character(const FontAtlas font_atlas, const char character, const Rect data, const Color color)
 {
   int32_t index = 0;
   if (character >= 'a' && character <= 'z') {
