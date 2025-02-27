@@ -153,6 +153,13 @@ typedef enum {
 #define TRIGGER_KEY_RIGHT_SUPER        347
 #define TRIGGER_KEY_MENU               348
 
+#define TRIGGER_VERTEX_SHADER                         0
+#define TRIGGER_FRAGMENT_SHADER                       1
+#define WHITE                                         (Color){255, 255, 255, 255}
+#define DARK_GRAY                                     (Color){30, 30, 30, 255}
+#define PINK                                          (Color){200, 40, 180, 255}
+#define HAKEN                                         (Color){0, 204, 153, 255}
+
 typedef struct Color {
   unsigned char r;
   unsigned char g;
@@ -215,11 +222,6 @@ typedef unsigned int IndexBuffer;
 #define T_VECTOR4
 #define T_MAT4
 #define T_RECTANGLE
-
-#define TRIGGER_VERTEX_SHADER                         0
-#define TRIGGER_FRAGMENT_SHADER                       1
-#define DARK_GRAY                                     (Color){30, 30, 30, 255}
-#define PINK                                          (Color){200, 40, 180, 255}
 
 //Window options related functions
 //============================================================

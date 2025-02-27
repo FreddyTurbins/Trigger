@@ -23,9 +23,11 @@ linuxexamples: linux
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/texture examples/texture/main.c -Wl,-rpath,./
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/shader examples/shader/main.c -Wl,-rpath,./
 	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/text examples/text/main.c -Wl,-rpath,./
+	@$(CC) $(cflags) -L./build/	-l:libtrigger.a -o ./build/raycasting examples/raycasting/main.c -Wl,-rpath,./ -lm
 
 win32ex: win32
 	@echo COMPILING HELLO TRIANGLE
 	@$(CCWIN32) $(cflags) examples/hellotriangle/main.c -o ./build/hellotriangle.exe -L./build/ -l:libtrigger.dll -static
 	@$(CCWIN32) $(cflags) examples/rectangle/main.c -o ./build/rectangle.exe -L./build/ -l:libtrigger.dll -static
 	@$(CCWIN32) $(cflags) examples/texture/main.c -o ./build/texture.exe -L./build/ -l:libtrigger.dll -static
+	@$(CCWIN32) $(cflags) examples/raycasting/main.c -o ./build/raycasting.exe -L./build/ -l:libtrigger.dll -static -lm

@@ -88,13 +88,13 @@ typedef struct DrawStats {
 } DrawStats;
 
 typedef struct Time {
-  double                last_time;
-  double                draw_time;
-  double                delta_time;
-  double                update_time;
-  double                initial_time;
-  double                target_framerate_cap;
-  unsigned long long    frame_counter;
+  double                  last_time;
+  double                  draw_time;
+  double                  delta_time;
+  double                  update_time;
+  double                  initial_time;
+  double                  target_framerate_cap;
+  unsigned long long      frame_counter;
 } Time;
 
 static RenderBatchData batch = {0};
@@ -396,8 +396,8 @@ void start_batch(void)
 void end_batch(void)
 {
   input_polling();
-  gfx_update();
   flush_renderer2d();
+  gfx_update();
   double current_time = get_run_time();
   time.draw_time = current_time - time.last_time;
   time.last_time = current_time;
@@ -492,7 +492,6 @@ void flush_line_renderer2d(void)
 
     batch.line_buffer_ptr = batch.line_buffer;
     batch.line_vertex_count = 0;
-    batch.line_thickness = 0;
     stats.draw_calls++;
   }
 }
@@ -531,8 +530,9 @@ void draw_line(const Vector2 v1, const Vector2 v2, const Color color)
 void draw_line_thickness(const Vector2 v1, const Vector2 v2, const float thickness, const Color color)
 {
   if (thickness <= 0.0f) return;
-  if (batch.line_thickness != 0 && batch.line_thickness != thickness) flush_line_renderer2d();
+  if (batch.line_thickness != thickness) {flush_line_renderer2d();}
   set_line_thickness(thickness);
+  batch.line_thickness = thickness;
   draw_line(v1, v2, color);
 }
 
@@ -620,8 +620,9 @@ void draw_rectangle(const Rectangle data, const Color color)
 void draw_rectangle_thickness(const Rectangle data, const float thickness, const Color color)
 {
   if (thickness <= 0.0f) return;
-  if (batch.line_thickness != 0 && batch.line_thickness != thickness) flush_line_renderer2d();
+  if (batch.line_thickness != thickness) flush_line_renderer2d();
   set_line_thickness(thickness);
+  batch.line_thickness = thickness;
   draw_rectangle(data, color);
 }
 

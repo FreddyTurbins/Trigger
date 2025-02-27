@@ -20,18 +20,18 @@ signed main()
 
     begin_shader(shader); 
     {
-      draw_texture(texture, (Vector2){300, 300}, (Color){255, 255, 255, 255});
-      draw_texture(texture2, (Vector2){100, 100}, (Color){255, 255, 255, 255});
+      draw_texture(texture, (Vector2){300, 300}, WHITE);
+      draw_texture(texture2, (Vector2){100, 100}, WHITE);
     }
     end_shader();
 
-    draw_texture(texture2, (Vector2){1200, 300}, (Color){255, 255, 255, 255});
-    draw_texture(texture2, (Vector2){1400, 300}, (Color){255, 255, 255, 255});
+    draw_texture(texture2, (Vector2){1200, 300}, WHITE);
+    draw_texture(texture2, (Vector2){1400, 300}, WHITE);
     draw_disk((Vector2){1700, 800}, 300, (Color){205, 25, 25, 255});
     snprintf(buffer, 32, "FPS: %d", get_framerate());
-    draw_rectangle_thickness((Rectangle){162, 1042, 310, 60}, 6.0f, (Color){255, 255, 255, 255});
-    draw_text_atlas(font, buffer, (Vector2){20, 1000}, 4.0f, (Color){255, 255, 255, 255});
-    draw_text_atlas(font, "Polifonia", (Vector2){500, 500}, 5.0f, (Color){255, 255, 255, 255});
+    draw_rectangle_thickness((Rectangle){162, 1042, 310, 60}, 6.0f, WHITE);
+    draw_text_atlas(font, buffer, (Vector2){20, 1000}, 4.0f, WHITE);
+    draw_text_atlas(font, "Polifonia", (Vector2){500, 500}, 5.0f, WHITE);
 
     end_batch();
   }
