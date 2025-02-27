@@ -39,7 +39,7 @@ signed main()
   init_window("Raycasting example", 1920, 1080);
   set_window_icon("./raycast_icon.png");
   init_renderer2d();
-  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){16.0f, 4.0f});
+  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){16.0f, 5.0f});
   char buffer[32];
   Vector2 player_position = {
     .x = 80.0f,
