@@ -120,11 +120,6 @@ void opengl_set_v_sync(const bool enabled)
     glfwSwapInterval(0);
 }
 
-void opengl_input_polling(void)
-{
-
-}
-
 double opengl_get_time(void)
 {
   double time = glfwGetTime();
@@ -136,8 +131,12 @@ static void key_call_back(GLFWwindow *window, int key, int scancode, int action,
   if (action == GLFW_RELEASE) keyboard.current_key_state[key] = 0;
   else if(action == GLFW_PRESS) keyboard.current_key_state[key] = 1;
   
-  trigger_log(LOG_TRACE, "[%c] -> %d action: %d; mods: %d", key, scancode, action, mods);
+  if ((keyboard.key_down_queue_count < MAX_KEY_DOWN_QUEUE) && (action == GLFW_PRESS || action == GLFW_REPEAT))
+  {
+    keyboard.key_down_queue[keyboard.key_down_queue_count++] = key;
+  }
 
+  trigger_log(LOG_TRACE, "[%c] -> %d action: %d; mods: %d", key, scancode, action, mods);
   glfwWindowShouldClose(window);
 }
 

@@ -251,8 +251,9 @@ TRAPI void set_v_sync(bool enabled);
 TRAPI void set_render_matrix_projection(Mat4 mat);
 TRAPI Mat4 get_render_mat_projection(void);
 
-//Input options related functions
+//Input related functions
 //============================================================
+TRAPI int32_t get_key_down(void);
 TRAPI bool is_key_pressed(const int32_t key_code);
 TRAPI bool is_key_down(const int32_t key_code);
 TRAPI bool is_mouse_button_pressed(const int32_t button);

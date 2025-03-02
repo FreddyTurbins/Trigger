@@ -181,7 +181,7 @@ signed main()
     }
     render_map();
     draw_quad((Rect){player_position.x - 7.5, player_position.y - 7.5, 15, 15}, HAKEN);
-    snprintf(buffer, 32, "FPS: %d", get_framerate());
+    snprintf(buffer, 32, "FPS: %4d", get_framerate());
     draw_rectangle_thickness((Rect){1740, 1042, 310, 60}, 6.0f, (Color){255, 255, 255, 255});
     draw_text_atlas(font, buffer, (Vector2){1600, 1000}, 4.0f, (Color){255, 255, 255, 255});
     end_batch();

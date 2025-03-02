@@ -803,9 +803,6 @@ void draw_text_atlas(const FontAtlas font_atlas, const char* text, const Vector2
       (Rect){pos.x + character_count * width * scale/2, pos.y,
       width * scale, height * scale}, color);
     
-    if (*text == 'l' || *text == 'i' || *text == '!') character_count -= 0.5;
-    if (*text == 'f') character_count -= 0.2;
-    if (*text == '#') character_count += 0.6;
     text++;
     character_count++;
   }
@@ -854,11 +851,11 @@ static void draw_character(const FontAtlas font_atlas, const char character, con
     index = 66;
   }*/ else if (character == '!') {
     index = 67;
-  } /*else if (character == '¿') {
+  } else if (character == '?') {
     index = 68;
-  }*/ else if (character == '?') {
+  }/* else if (character == '¿') {
     index = 69;
-  } else if (character == '(') {
+  }*/else if (character == '(') {
     index = 70;
   } else if (character == ')') {
     index = 71;
@@ -870,8 +867,12 @@ static void draw_character(const FontAtlas font_atlas, const char character, con
     index = 74;
   } else if (character == '\\') {
     index = 75;
+  } else if (character == '_') {
+    index = 76;
+  } else if (character == ',') {
+    index = 77;
   } else {
-    trigger_log(LOG_WARN, "[%c] Not in atlas", character);
+    trigger_log(LOG_DEBUG, "[%c] Not in atlas", character);
     return;
   }
   int stride_x = index%16;

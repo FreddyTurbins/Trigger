@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #define MAX_KEYBOARD_KEYS_CODE            512
+#define MAX_KEY_DOWN_QUEUE                16
 
 typedef enum {
   NONE_API = 0,
@@ -29,8 +30,10 @@ typedef struct TriggerWindow {
 } TriggerWindow;
 
 typedef struct Keyboard {
+  int32_t               key_down_queue[MAX_KEY_DOWN_QUEUE];
   uint8_t               current_key_state[MAX_KEYBOARD_KEYS_CODE];
   uint8_t               previous_key_state[MAX_KEYBOARD_KEYS_CODE];
+  uint8_t               key_down_queue_count;
 } Keyboard;
 
 TriggerWindow trigger_window = {0};
@@ -125,6 +128,18 @@ void set_v_sync(bool enabled)
 
 //Input options related functions
 //============================================================
+int32_t get_key_down(void)
+{
+  if (keyboard.key_down_queue_count == 0) return 0;
+
+  int32_t key_code = keyboard.key_down_queue[0];
+  for (uint8_t key_down_stride = 0; key_down_stride < keyboard.key_down_queue_count; key_down_stride++) {
+    keyboard.key_down_queue[key_down_stride] = keyboard.key_down_queue[key_down_stride+1];
+  }
+  keyboard.key_down_queue[--keyboard.key_down_queue_count] = 0;
+  return key_code;
+}
+
 bool is_key_pressed(const int32_t key_code)
 {
   return keyboard.current_key_state[key_code] == 1 && keyboard.previous_key_state[key_code] == 0;
@@ -370,6 +385,7 @@ void gfx_update(void) {
 }
 
 void input_polling(void) {
+  keyboard.key_down_queue_count = 0;
   for (int i = 0; i < MAX_KEYBOARD_KEYS_CODE; i++)
   {
     keyboard.previous_key_state[i] = keyboard.current_key_state[i];

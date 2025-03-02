@@ -11,7 +11,7 @@ signed main()
   unsigned int shader = load_shader("shader.vert", "shader.frag");
   Texture texture = load_texture("./test.png");
   Texture texture2 = load_texture("./test2.png");
-  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){16.0f, 4.0f});
+  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){16.0f, 5.0f});
   char buffer[32];
 
   while(!window_should_close()) {
@@ -28,7 +28,7 @@ signed main()
     draw_texture(texture2, (Vector2){1200, 300}, WHITE);
     draw_texture(texture2, (Vector2){1400, 300}, WHITE);
     draw_disk((Vector2){1700, 800}, 300, (Color){205, 25, 25, 255});
-    snprintf(buffer, 32, "FPS: %d", get_framerate());
+    snprintf(buffer, 32, "FPS: %4d", get_framerate());
     draw_rectangle_thickness((Rect){162, 1042, 310, 60}, 6.0f, WHITE);
     draw_text_atlas(font, buffer, (Vector2){20, 1000}, 4.0f, WHITE);
     draw_text_atlas(font, "Polifonia", (Vector2){500, 500}, 5.0f, WHITE);
