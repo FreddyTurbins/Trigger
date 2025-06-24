@@ -68,6 +68,7 @@ typedef struct RenderBatchData {
   TextVertex*             text_buffer_ptr;
   TextVertex*             text_buffer;
   uint32_t                text_texture;
+  uint8_t                 text_tab_size;
 
   
   VertexArrayObject       line_vertex_array;
@@ -281,6 +282,7 @@ void init_renderer2d(void)
   }
   
   //Text
+  batch.text_tab_size = 4; //DEFAULT
   batch.text_vertex_array = create_vao();
   batch.text_vertex_buffer = create_vertex_buffer(RENDERER_MAX_VERTICES*sizeof(TextVertex));
   set_vao_attribute(batch.text_vertex_array, 0, 3, sizeof(TextVertex), (const void*)offsetof(TextVertex, position));
@@ -508,6 +510,16 @@ void flush_renderer2d(void)
   flush_disk_renderer2d();
   flush_text_renderer2d();
   flush_line_renderer2d();
+}
+
+void set_text_tab_size(uint8_t new_tab_size)
+{
+  batch.text_tab_size = new_tab_size;
+}
+
+uint8_t get_text_tab_size(void)
+{
+  return batch.text_tab_size;
 }
 
 //2D Renderer drawing related functions
@@ -797,10 +809,13 @@ void draw_text_atlas(const FontAtlas font_atlas, const char* text, const Vector2
       text++;
       character_count++;
       continue;;
+    } else if (*text == '\t') {
+      text++;
+      character_count += batch.text_tab_size;
     }
 
     draw_character(font_atlas, *text, 
-      (Rect){pos.x + character_count * width * scale/2, pos.y,
+      (Rect){pos.x + character_count * width * scale, pos.y,
       width * scale, height * scale}, color);
     
     text++;

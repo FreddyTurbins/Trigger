@@ -30,7 +30,8 @@ char* read_text_file(const char* filepath, unsigned int* read_len)
   unsigned int count = (unsigned int)ftell(file);
   fseek(file, 0, SEEK_SET);
   if(count <= 0) {
-    trigger_log(LOG_WARN, "FILEIO -> [%s] File failed to read", filepath);
+    trigger_log(LOG_INFO, "FILEIO -> [%s] File empty", filepath);
+    *read_len = 0;
     return text;
   }
 

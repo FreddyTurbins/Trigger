@@ -6,6 +6,8 @@
 #define MAX_KEYBOARD_KEYS_CODE            512
 #define MAX_KEY_DOWN_QUEUE                16
 
+#define MAX_GAMEPADS                      8
+
 typedef enum {
   NONE_API = 0,
   TEGL
@@ -161,6 +163,13 @@ Vector2 get_mouse_position(void)
     .x = opengl_get_mouse_x_position(),
     .y = opengl_get_mouse_y_position()
   };
+}
+
+char* get_clipboard_string(void)
+{
+  char* clipboard = NULL;
+  clipboard = opengl_get_clipboard_string();
+  return clipboard;
 }
 
 //Drawing functions

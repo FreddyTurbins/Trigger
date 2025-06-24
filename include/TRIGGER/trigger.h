@@ -154,18 +154,18 @@ typedef enum {
 #define TRIGGER_KEY_RIGHT_SUPER                       347
 #define TRIGGER_KEY_MENU                              348
 
-#define TRIGGER_MOUSE_BUTTON_1                           0
-#define TRIGGER_MOUSE_BUTTON_2                           1
-#define TRIGGER_MOUSE_BUTTON_3                           2
-#define TRIGGER_MOUSE_BUTTON_4                           3
-#define TRIGGER_MOUSE_BUTTON_5                           4
-#define TRIGGER_MOUSE_BUTTON_6                           5
-#define TRIGGER_MOUSE_BUTTON_7                           6
-#define TRIGGER_MOUSE_BUTTON_8                           7
-#define TRIGGER_MOUSE_BUTTON_LAST                        TRIGGER_MOUSE_BUTTON_8
-#define TRIGGER_MOUSE_BUTTON_LEFT                        TRIGGER_MOUSE_BUTTON_1
-#define TRIGGER_MOUSE_BUTTON_RIGHT                       TRIGGER_MOUSE_BUTTON_2
-#define TRIGGER_MOUSE_BUTTON_MIDDLE                      TRIGGER_MOUSE_BUTTON_3
+#define TRIGGER_MOUSE_BUTTON_1                        0
+#define TRIGGER_MOUSE_BUTTON_2                        1
+#define TRIGGER_MOUSE_BUTTON_3                        2
+#define TRIGGER_MOUSE_BUTTON_4                        3
+#define TRIGGER_MOUSE_BUTTON_5                        4
+#define TRIGGER_MOUSE_BUTTON_6                        5
+#define TRIGGER_MOUSE_BUTTON_7                        6
+#define TRIGGER_MOUSE_BUTTON_8                        7
+#define TRIGGER_MOUSE_BUTTON_LAST                     TRIGGER_MOUSE_BUTTON_8
+#define TRIGGER_MOUSE_BUTTON_LEFT                     TRIGGER_MOUSE_BUTTON_1
+#define TRIGGER_MOUSE_BUTTON_RIGHT                    TRIGGER_MOUSE_BUTTON_2
+#define TRIGGER_MOUSE_BUTTON_MIDDLE                   TRIGGER_MOUSE_BUTTON_3
 
 #define TRIGGER_VERTEX_SHADER                         0
 #define TRIGGER_FRAGMENT_SHADER                       1
@@ -258,6 +258,7 @@ TRAPI bool is_key_pressed(const int32_t key_code);
 TRAPI bool is_key_down(const int32_t key_code);
 TRAPI bool is_mouse_button_pressed(const int32_t button);
 TRAPI Vector2 get_mouse_position(void);
+TRAPI char* get_clipboard_string(void);
 
 //Drawing related functions
 //============================================================

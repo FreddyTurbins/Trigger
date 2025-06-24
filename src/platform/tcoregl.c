@@ -171,3 +171,9 @@ float opengl_get_mouse_y_position(void)
   glfwGetCursorPos(platform.m_window, &x_pos, &y_pos);
   return (float)y_pos;
 }
+
+char* opengl_get_clipboard_string(void)
+{
+  const char* clipboard = glfwGetClipboardString(platform.m_window);
+  return (char*)clipboard;
+}

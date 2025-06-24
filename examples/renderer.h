@@ -44,11 +44,13 @@ TRAPI void init_renderer2d(void);
 TRAPI void close_renderer2d(void);
 TRAPI void start_batch(void);
 TRAPI void end_batch(void);
-TRAPI void flush_renderer2d(void);
 TRAPI void flush_quad_renderer2d(void);
 TRAPI void flush_disk_renderer2d(void);
 TRAPI void flush_text_renderer2d(void);
 TRAPI void flush_line_renderer2d(void);
+TRAPI void flush_renderer2d(void);
+TRAPI void set_text_tab_size(uint8_t new_tab_size);
+TRAPI uint8_t get_text_tab_size(void);
 
 //2D Renderer drawing related functions
 //============================================================
