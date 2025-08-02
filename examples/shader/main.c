@@ -11,7 +11,7 @@ signed main()
   unsigned int shader = load_shader("shader.vert", "shader.frag");
   Texture texture = load_texture("./test.png");
   Texture texture2 = load_texture("./test2.png");
-  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){16.0f, 5.0f});
+  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){8.0f, 5.0f});
   char buffer[32];
 
   while(!window_should_close()) {

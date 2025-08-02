@@ -8,7 +8,7 @@ signed main()
 {
   init_window("Hello Triangle", 720, 460);
   init_renderer2d();
-  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){16.0f, 4.0f});
+  FontAtlas font = create_font_atlas("./font.bmp", (Vector2){8.0f, 4.0f});
   char buffer[32];
   while(!window_should_close()) {
     start_batch();

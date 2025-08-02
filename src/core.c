@@ -47,11 +47,19 @@ Keyboard keyboard = {0};
   #define TMATH_IMPLEMENTATION
   #include "trigger_math.h"
   #define TEGL_IMPLEMENTATION
-  #include "trigger_gl.h"               //THIS IS THE RIGHT ORDER
-  #include "platform/tcoregl.c"
+  #include "vendor/glad/glad.h"
+  #include "vendor/glfw/include/GLFW/glfw3.h"
   #define STB_IMAGE_IMPLEMENTATION
   #include "vendor/stb_image.h"
 #endif
+
+typedef struct {
+  GLFWwindow *m_window;
+} PlatformData;
+
+PlatformData platform = {0};
+
+static void key_call_back(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 //Window options functions
 //============================================================
@@ -62,7 +70,30 @@ void init_window(const char* title, const uint16_t width, const uint16_t height)
   trigger_window.render.height = height;
   trigger_window.v_sync = true;
   #if defined(PLATFORM_DESKTOP)
-  init_opengl();
+  int result = glfwInit();
+  if (result == GLFW_FALSE) { 
+    trigger_log(LOG_FATAL, "Failed to initialize GLFW");
+    return;
+  }
+  platform.m_window = glfwCreateWindow(trigger_window.render.width, trigger_window.render.height, trigger_window.title, NULL, NULL);
+  if(!platform.m_window) 
+  {
+    trigger_log(LOG_FATAL, "Fail creating window");
+    glfwTerminate();
+    return;
+  }
+  //MAKE A ABSTRACTION TO OPENGLCONTEXT
+  glfwMakeContextCurrent(platform.m_window);
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+  {
+    trigger_log(LOG_FATAL, "Failed initializing GLAD");
+    return;
+  }
+  glfwSetKeyCallback(platform.m_window, key_call_back);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_LINE_SMOOTH);
+  glEnable(GL_BLEND);
+
   current_renderer_api = TEGL;
   Mat4 projection_matrix = create_matrix_ortho(0.0f, (float)width, 0.0f, (float)height, -1.0f, 1.0f);
   trigger_window.projection_matrix = projection_matrix;
@@ -76,7 +107,7 @@ bool window_should_close(void)
     case NONE_API:
       trigger_log(LOG_WARN, "WindowShouldClose function is not detecting an API");
       return true;
-    case TEGL: return opengl_should_close() || trigger_window.should_close;
+    case TEGL: return glfwWindowShouldClose(platform.m_window) || trigger_window.should_close;
   }
   #endif
   trigger_log(LOG_ERROR, "WindowShouldClose detecting an irregular rendererApi");
@@ -91,7 +122,7 @@ void window_shutdown(void)
 void close_window(void)
 {
   #if defined(PLATFORM_DESKTOP)
-  opengl_close_window();
+  glfwTerminate();
   #endif
 }
 
@@ -99,7 +130,18 @@ void set_window_icon(const char* filepath)
 {
   Image image = {0};
   image.data = stbi_load(filepath, &image.width, &image.height, 0, 4);
-  opengl_set_window_icon(image);
+  if (image.data == NULL) {
+    trigger_log(LOG_WARN, "set_window_icon -> Null image data");
+    return;
+  }
+  //OPENGL
+  GLFWimage icon = {
+    .width = image.width,
+    .height = image.height,
+    .pixels = (uint8_t*)image.data
+  };
+  glfwSetWindowIcon(platform.m_window, 1, &icon);
+  trigger_log(LOG_INFO, "set_window_icon -> Icon succesfully setted");
 }
 
 Vector2 get_window_size(void)
@@ -109,21 +151,46 @@ Vector2 get_window_size(void)
 
 void set_window_size(Vector2 window_size)
 {
-  opengl_set_viewport(window_size.x, window_size.y);
+  //glViewport(0, 0, width, height);
+  glfwSetWindowSize(platform.m_window, window_size.x, window_size.y);
   trigger_window.render.width = window_size.x;
   trigger_window.render.height = window_size.y;
 }
 
 void toggle_full_screen(void)
 {
-  opengl_toggle_full_screen();
+  if (!trigger_window.full_screen) {
+    GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+    
+
+    if (monitor == NULL) {
+      trigger_log(LOG_WARN, "toggle_full_scren -> Failed getting monitor");
+      return;
+    } 
+    trigger_window.full_screen = true;
+    glfwGetWindowPos(platform.m_window, &trigger_window.position.x, &trigger_window.position.y);
+    trigger_window.previous_position.x = trigger_window.position.x;
+    trigger_window.previous_position.y = trigger_window.position.y;
+    const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+    int32_t screen_width = mode->width;
+    int32_t screen_height = mode->height;
+    glfwSetWindowMonitor(platform.m_window, monitor, 0, 0, screen_width, screen_height, GLFW_DONT_CARE);
+  } else {
+    trigger_window.full_screen = false;
+    glfwSetWindowMonitor(platform.m_window, NULL, trigger_window.previous_position.x, trigger_window.previous_position.y, 
+        trigger_window.render.width, trigger_window.render.height, GLFW_DONT_CARE);
+
+    trigger_window.position.x = trigger_window.previous_position.x;
+    trigger_window.position.y = trigger_window.previous_position.y;
+  }
 }
 
 void set_v_sync(bool enabled)
 {
   switch (current_renderer_api) {
     case NONE_API: {trigger_log(LOG_DEBUG, "set_v_sync -> Trigger has not api selected"); break;}
-    case TEGL: {opengl_set_v_sync(enabled); break;}
+    case TEGL: {glfwSwapInterval(enabled); break;}
   }
   trigger_window.v_sync = enabled;
 }
@@ -154,48 +221,54 @@ bool is_key_down(const int32_t key_code)
 
 bool is_mouse_button_pressed(const int32_t button)
 {
-  return opengl_is_mouse_button_pressed(button);
+  int32_t status = glfwGetMouseButton(platform.m_window, button);
+  return status == GLFW_PRESS;
 }
 
 Vector2 get_mouse_position(void)
 {
+  double x_pos, y_pos;
+  glfwGetCursorPos(platform.m_window, &x_pos, &y_pos);
   return (Vector2) {
-    .x = opengl_get_mouse_x_position(),
-    .y = opengl_get_mouse_y_position()
+    .x = x_pos,
+    .y = y_pos
   };
 }
 
 char* get_clipboard_string(void)
 {
-  char* clipboard = NULL;
-  clipboard = opengl_get_clipboard_string();
-  return clipboard;
+  const char* clipboard = glfwGetClipboardString(platform.m_window);
+  return (char*)clipboard;
 }
 
 //Drawing functions
 //============================================================
 void draw_indexed(const VertexArrayObject vertex_array_object, const uint32_t index_count)
 {
-  tgl_bind_vao(vertex_array_object);
-  tgl_draw_triangles(index_count);
+  bind_vao(vertex_array_object);
+  glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, NULL);
 }
 
 void draw_lines(const VertexArrayObject vertex_array_object, const uint32_t vertex_count)
 {
-  tgl_bind_vao(vertex_array_object);
-  tgl_draw_lines(vertex_count);
+  bind_vao(vertex_array_object);
+  glDrawArrays(GL_LINES, 0, vertex_count);
 }
 
 void set_line_thickness(const float thickness)
 {
-  tgl_set_line_thickness(thickness);
+  glLineWidth(thickness);
 }
 
 void set_background(const Color color)
 {
+  float red = (float)color.r/255;
+  float green = (float)color.g/255;
+  float blue = (float)color.b/255;
+  float alpha = (float)color.a/255;
   switch (current_renderer_api) {
     case NONE_API: {trigger_log(LOG_DEBUG, "set_background -> Trigger has not api selected"); return;}
-    case TEGL: {tgl_set_background(color.r, color.g, color.b, color.a); return;}
+    case TEGL: {glClearColor(red, green, blue, alpha); return;}
   }
 }
 
@@ -211,17 +284,17 @@ Mat4 get_render_mat_projection(void)
 
 void set_uniform1iv(int32_t loc, int32_t samples, int32_t* samplers)
 {
-  tgl_set_uniform1iv(loc, samples, samplers);
+  glUniform1iv(loc, samples, samplers);
 }
 
 void bind_texture_unit(uint32_t index, uint32_t slot)
 {
-  tgl_bind_texture_unit(index, slot);
+  glBindTextureUnit(index, slot);
 }
 
 void bind_texture(uint32_t texture)
 {
-  tgl_bind_texture(texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
 }
 
 //Texture functions
@@ -242,7 +315,7 @@ Texture load_texture(const char* filepath)
   }
   
   //USING OPENGL ABSTRACTION
-  texture.id = tgl_create_texture(img.data, img.width, img.height, img.nr_channel);
+  texture.id = create_texture(img.data, img.width, img.height, img.nr_channel);
   texture.width = img.width;
   texture.height = img.height;
   texture.nr_channel = img.nr_channel;
@@ -262,7 +335,22 @@ uint32_t create_texture(const uint8_t* data, const int32_t width, const int32_t 
   else if (nr_channel == 2) nr_channel = GL_LUMINANCE_ALPHA;
   else if (nr_channel == 3) nr_channel = GL_RGB;
   else if (nr_channel == 4) nr_channel = GL_RGBA;
-  return tgl_create_texture(data, width, height, nr_channel);
+  unsigned int id = 0;
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  glGenTextures(1, &id);
+  glBindTexture(GL_TEXTURE_2D, id);
+
+  //WITHOUT MIMMAP
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, nr_channel, GL_UNSIGNED_BYTE, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+ 
+  return id;
 }
 
 Image read_image_file(const char* filepath)
@@ -321,75 +409,150 @@ uint32_t load_shader(const char* v_shader_path, const char* f_shader_path)
   return program;
 }
 
+unsigned int compile_shader_text(const char* shader_text, int type)
+{
+  if (type != TRIGGER_VERTEX_SHADER && type != TRIGGER_FRAGMENT_SHADER) {
+    trigger_log(LOG_DEBUG, "\n[%s]", shader_text);
+    trigger_log(LOG_WARN, "SHADER -> Invalid type");
+    return 0;
+  }
+  
+  type = (type) ? GL_FRAGMENT_SHADER : GL_VERTEX_SHADER;
+
+  unsigned int id = glCreateShader(type);
+  glShaderSource(id, 1, &shader_text, NULL);
+  glCompileShader(id);
+
+  int result;
+  glGetShaderiv(id, GL_COMPILE_STATUS, &result);
+  if (result == GL_FALSE) {
+    int count_result = 0;
+    glGetShaderiv(id, GL_INFO_LOG_LENGTH, &count_result);
+    char* message = (char*)calloc(count_result, sizeof(char));
+    glGetShaderInfoLog(id, count_result, &count_result, message);
+    message[count_result-1] = '\0';
+    trigger_log(LOG_WARN, "SHADER -> [ID: %d] Failed compiling %s shader\n%s", id,
+        (type == GL_VERTEX_SHADER) ? "vertex" : "fragment", message);
+    free_text_data(message);
+  } else {
+    trigger_log(LOG_DEBUG, "SHADER -> [ID: %d] Succesfully compile %s shader", id,
+        (type == GL_VERTEX_SHADER) ? "vertex" : "fragment");
+  }
+  return id;
+}
+
 uint32_t compile_shader(const char* v_shader_code, const char* f_shader_code)
 {
-  uint32_t v_shader = tgl_compile_shader(v_shader_code, TRIGGER_VERTEX_SHADER);
-  uint32_t f_shader = tgl_compile_shader(f_shader_code, TRIGGER_FRAGMENT_SHADER);
-  return tgl_create_shader_program(v_shader, f_shader);
+  uint32_t v_shader = compile_shader_text(v_shader_code, TRIGGER_VERTEX_SHADER);
+  uint32_t f_shader = compile_shader_text(f_shader_code, TRIGGER_FRAGMENT_SHADER);
+  
+  unsigned int program = glCreateProgram();
+
+  glAttachShader(program, v_shader);
+  glAttachShader(program, f_shader);
+  glLinkProgram(program);
+  glValidateProgram(program);
+
+  int success = 0;
+  glGetProgramiv(program, GL_LINK_STATUS, &success);
+  if (success == GL_FALSE) {
+    int count_result = 0;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &count_result);
+    char* message = (char*)calloc(count_result, sizeof(char));
+    glGetProgramInfoLog(program, count_result, &count_result, message);
+    message[count_result-1] = '\0';
+    trigger_log(LOG_WARN, "SHADER -> [ID: %d] Program failed linking\n%s", program, message);
+    free_text_data(message);
+  } else {
+    trigger_log(LOG_DEBUG, "SHADER -> [ID: %d] Program link succesfuly", program);
+  }
+  return program;
 }
 
 void bind_shader(const uint32_t shader)
 {
-  tgl_bind_shader(shader);
+  glUseProgram(shader);
 }
 
 int get_shader_location(uint32_t shader, const char* uniform_name)
 {
-  return tgl_get_shader_location(shader, uniform_name);
+  int loc = glGetUniformLocation(shader, uniform_name);
+  if (loc < 0) {
+    trigger_log(LOG_WARN, "SHADER-> [%s] uniform is not valid", uniform_name);
+  }
+  return loc;
 }
 
 void set_shader_uniform_mat4(const uint32_t shader, int loc, Mat4 mat)
 {
-  tgl_bind_shader(shader);
-  tgl_set_uniform_mat4f(loc, mat);
+  bind_shader(shader);
+  float fMat[16] = {
+    mat.m0, mat.m1, mat.m2, mat.m3,
+    mat.m4, mat.m5, mat.m6, mat.m7,
+    mat.m8, mat.m9, mat.m10, mat.m11,
+    mat.m12, mat.m13, mat.m14, mat.m15
+  };
+  glUniformMatrix4fv(loc, 1, GL_FALSE, fMat);
 }
 
 VertexBuffer create_vertex_buffer(const uint64_t size)
 {
-  VertexBuffer vertex_buffer = tgl_create_vertex_buffer(size);
+  VertexBuffer vertex_buffer = 0;
+  glGenBuffers(1, &vertex_buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+  glBufferData(GL_ARRAY_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
   return vertex_buffer;
 }
 
 void bind_vertex_buffer(const VertexBuffer vertex_buffer)
 {
-  tgl_bind_vertex_buffer(vertex_buffer);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
 }
 
 void set_vertex_buffer_data(const VertexBuffer vertex_buffer, const void* data, uint32_t size)
 {
-  tgl_vertex_buffer_data(vertex_buffer, data, size);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
 }
 
 IndexBuffer create_index_buffer(const uint32_t* indices, const uint32_t count_indices)
 {
-  return tgl_create_index_buffer(indices, count_indices);
+  unsigned int index_buffer = 0;
+  glGenBuffers(1, &index_buffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, count_indices*sizeof(unsigned int), indices, GL_STATIC_DRAW);
+  return index_buffer;
 }
 
 void bind_index_buffer(const IndexBuffer index_buffer)
 {
-  tgl_bind_index_buffer(index_buffer);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 }
 
 VertexArrayObject create_vao()
 {
-  VertexArrayObject vertex_array_object = tgl_create_vao();
-  return vertex_array_object;
+  VertexArrayObject vao = 0;
+  glCreateVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+  return vao;
 }
 
 void bind_vao(VertexArrayObject vertex_array_object)
 {
-  tgl_bind_vao(vertex_array_object);
+  glBindVertexArray(vertex_array_object);
 }
 
-void set_vao_attribute(VertexArrayObject vao, int32_t idAttr, int32_t number_attr, uint64_t size, const void* offset)
+void set_vao_attribute(VertexArrayObject vao, int32_t id_attr, int32_t number_attr, uint64_t size, const void* offset)
 {
-  tgl_set_vao_attribute(vao, idAttr, number_attr, size, offset);
+  glEnableVertexArrayAttrib(vao, id_attr);
+  glVertexAttribPointer(id_attr, number_attr, GL_FLOAT, GL_FALSE, size, offset);
 }
 
 void gfx_update(void) {
   #if defined(PLATFORM_DESKTOP)
-    opengl_swap_screen_buffer();
-    tgl_clear_screen_buffer();
+    glfwSwapBuffers(platform.m_window);
+    glfwPollEvents();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   #endif
 }
 
@@ -404,12 +567,37 @@ void input_polling(void) {
 
 double get_run_time(void)
 {
-  double time = opengl_get_time();
+  double time = glfwGetTime();
   return time;
 }
 
 //Static functions
 //============================================================
+static void key_call_back(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+  if (action == GLFW_RELEASE) keyboard.current_key_state[key] = 0;
+  else if(action == GLFW_PRESS) keyboard.current_key_state[key] = 1;
+  
+  if ((keyboard.key_down_queue_count < MAX_KEY_DOWN_QUEUE) && (action == GLFW_PRESS || action == GLFW_REPEAT))
+  {
+    keyboard.key_down_queue[keyboard.key_down_queue_count++] = key;
+  }
+
+  trigger_log(LOG_TRACE, "[%c] -> %d action: %d; mods: %d", key, scancode, action, mods);
+  glfwWindowShouldClose(window);
+}
+
+bool opengl_is_key_pressed(const int32_t key_code)
+{
+  int32_t status = glfwGetKey(platform.m_window, key_code);
+  return status == GLFW_PRESS;
+}
+
+bool opengl_is_key_down(const int32_t key_code)
+{
+  int32_t status = glfwGetKey(platform.m_window, key_code);
+  return status == GLFW_PRESS || status == GLFW_REPEAT;
+}
 /*
 static void record_input_event(void)
 {

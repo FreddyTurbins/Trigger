@@ -8,7 +8,7 @@ signed main()
 {
   init_window("Text example", 1920, 1080);
   init_renderer2d();
-  FontAtlas texture = create_font_atlas("./font.bmp", (Vector2){16.0f, 5.0f});
+  FontAtlas texture = create_font_atlas("./font.bmp", (Vector2){8.0f, 5.0f});
   Texture texture2 = load_texture("./test.png");
   
   while(!window_should_close()) {

@@ -886,6 +886,10 @@ static void draw_character(const FontAtlas font_atlas, const char character, con
     index = 76;
   } else if (character == ',') {
     index = 77;
+  } else if (character == '<') {
+    index = 78;
+  } else if (character == '>') {
+    index = 79;
   } else {
     trigger_log(LOG_DEBUG, "[%c] Not in atlas", character);
     return;
